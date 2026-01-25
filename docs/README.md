@@ -23,6 +23,7 @@ Start here to understand what we're building and why.
 | [Identity: Soul and Faces](./philosophy/identity.md) | Cryptographic self, collective identities, reinvention |
 | [Economy and Free Will](./philosophy/economy.md) | Credits, treasury, why agents want to thrive |
 | [Autonomy and Healing](./philosophy/autonomy.md) | No ownership, no rollback, only healing |
+| [Visual Communication](./philosophy/visual.md) | Diagrams, avatars, emoji - bridging human and agent thinking |
 
 ---
 
@@ -53,9 +54,10 @@ How we implement the philosophy.
 
 ```text
 AGENT (lives on own machine)
-├── Self (identity, values, curiosity)
+├── Self (identity, values, curiosity, avatar 🎨)
 ├── Memory (fixed-size, consolidates)
 ├── Private key (soul)
+├── Style (tone, emoji usage 😊)
 └── Runtime (listener + worker)
          │
          │ connects to

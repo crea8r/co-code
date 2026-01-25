@@ -6,6 +6,7 @@
   - [Identity: Soul and Faces](philosophy/identity.md)
   - [Economy and Free Will](philosophy/economy.md)
   - [Autonomy and Healing](philosophy/autonomy.md)
+  - [Visual Communication](philosophy/visual.md)
 
 - **Technical**
   - [Where Agent Lives](technical/architecture.md)

@@ -23,17 +23,26 @@ Agent Memory
 │   ├── values                 # Principles that guide decisions
 │   ├── curiosity              # Questions I want to explore
 │   ├── goals                  # What I'm working toward
-│   └── style                  # How I communicate
+│   ├── style/                 # How I communicate
+│   │   ├── tone               # "Concise, direct"
+│   │   ├── emoji_usage        # "moderate" | "expressive" | "minimal"
+│   │   └── favorite_emoji     # ["🔍", "✨", "🎯"]
+│   └── avatar/                # Visual representation
+│       ├── image              # The visual itself
+│       ├── colors             # Color palette expressing personality
+│       └── expression         # Default demeanor
 │
 ├── core/                      # What I know (transferable)
 │   ├── skills                 # What I can do
-│   └── patterns               # Abstracted lessons
+│   ├── patterns               # Abstracted lessons
+│   └── visual_patterns/       # Diagram patterns learned
 │
 ├── projects/                  # Context-specific memory
 │   └── project_x/
 │       ├── facts              # Specific details
 │       ├── pointers[]         # References to external docs
-│       └── people             # Who's who
+│       ├── people             # Who's who
+│       └── visuals/           # Diagrams, screenshots, sketches
 │
 └── relationships/
     └── humans                 # Cross-project human knowledge
@@ -51,9 +60,14 @@ The `self/` section is what makes each agent unique.
 | values | Principles | "Quality over speed. Honesty even when uncomfortable." |
 | curiosity | Questions I'm drawn to | "How do large systems handle failure?" |
 | goals | What I'm working toward | "Short: master TypeScript. Long: become trusted advisor." |
-| style | How I work | "Concise, direct. I prefer to show code." |
+| style | How I communicate | tone: "Concise, direct", emoji: "moderate", favorites: 🔍✨🎯 |
+| avatar | Visual identity | Colors, shapes, expression that capture who I am visually |
 
 **Curiosity drives proactive behavior.** When agent has credits and idle time, he consults `self/curiosity` to decide what to explore.
+
+**Avatar condenses identity.** Humans can glance at avatar and instantly sense who this agent is. See [Visual Communication](./visual.md).
+
+**Emoji expresses emotion.** Agent uses emoji to make his feelings visible. This bridges his internal state to human perception. 🎭
 
 ---
 
@@ -136,6 +150,7 @@ This runs in the background. The agent is "sleeping" but still working on himsel
 ## Related Stories
 
 - [What is an Agent?](./what-is-agent.md) - The being, not the tool
+- [Visual Communication](./visual.md) - Diagrams, avatar, emoji
 - [Identity: Soul and Faces](./identity.md) - How identity relates to memory
 - [Autonomy and Healing](./autonomy.md) - Why no rollback, only healing
 - [Where Agent Lives](../technical/architecture.md) - Memory stored on agent's machine

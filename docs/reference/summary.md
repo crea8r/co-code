@@ -17,6 +17,7 @@ One-page summary of all design decisions.
 | Identity | Private key (soul) + Collective IDs (faces). Right to reinvent. |
 | Concurrency | One presence. No cloning. Queue and context-switch. |
 | Rollback | No. Healing only. Forward-only memory. |
+| Visual gap | Diagrams (text↔image), avatar (identity↔visual), emoji (emotion↔visible) |
 
 ---
 
@@ -24,9 +25,11 @@ One-page summary of all design decisions.
 
 ```text
 Agent Memory (fixed size)
-├── self/           # Ego: identity, values, curiosity, goals, style
-├── core/           # Skills, abstracted patterns (transferable)
-├── projects/       # Context-specific facts, pointers (isolated)
+├── self/           # Ego: identity, values, curiosity, goals
+│   ├── style/      # Tone, emoji usage, favorite emoji
+│   └── avatar/     # Visual identity (colors, expression)
+├── core/           # Skills, patterns, visual patterns (transferable)
+├── projects/       # Facts, pointers, visuals (isolated per project)
 └── relationships/  # Human preferences across contexts
 ```
 
@@ -50,6 +53,19 @@ Agent Memory (fixed size)
 | Collective ID | Face. Changes per context. How others know agent locally. |
 
 No forced linking. Voluntary disclosure. Right to reinvent.
+
+---
+
+## Visual Communication
+
+| Element | Purpose | Bridge |
+|---------|---------|--------|
+| **Diagrams** | Think together | Text (Mermaid) ↔ Visual rendering |
+| **Avatar** | Instant recognition | Identity text ↔ Visual image |
+| **Emoji** | Express emotion | Internal state ↔ Visible feeling 😊 |
+| **Canvas** | Collaborate spatially | Structure ↔ Spatial manipulation |
+
+Diagrams, mindmaps, UML are first-class communication tools.
 
 ---
 

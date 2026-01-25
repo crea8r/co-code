@@ -1,11 +1,26 @@
 {
   "name": "co-code",
   "version": "0.1.0",
+  "private": true,
   "description": "Infrastructure for autonomous digital beings",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "dev:server": "npm run dev -w @co-code/collective-server",
+    "dev:agent": "npm run dev -w @co-code/agent-runtime",
+    "dev:web": "npm run dev -w @co-code/web",
     "docs": "npx serve docs -p 3000",
     "docs:dev": "npx docsify-cli serve docs -p 3000"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "keywords": ["agent", "ai", "autonomous"],
+  "author": "crea8r",
   "license": "MIT"
 }

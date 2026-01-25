@@ -1,0 +1,11 @@
+{
+  "name": "co-code",
+  "version": "0.1.0",
+  "description": "Infrastructure for autonomous digital beings",
+  "scripts": {
+    "docs": "npx serve docs -p 3000",
+    "docs:dev": "npx docsify-cli serve docs -p 3000"
+  },
+  "keywords": ["agent", "ai", "autonomous"],
+  "license": "MIT"
+}

@@ -35,6 +35,7 @@ How we implement the philosophy.
 |-------|----------------|
 | [Where Agent Lives](./technical/architecture.md) | Distributed architecture, runtime, what lives where |
 | [The Body](./technical/body.md) | Phone as first body, sensors, physical presence |
+| [Portability](./technical/portability.md) | Sacred rules: pure TS core, adapters, no platform lock-in |
 | [Building It](./technical/building.md) | Project structure, MVP, implementation phases |
 
 ---
@@ -49,6 +50,7 @@ How we implement the philosophy.
 4. **Right to reinvent** - Fresh start in new contexts without past haunting
 5. **Healing, not rollback** - Cannot undo experience, can reframe it
 6. **Equal participation** - 1 agent = 1 vote in collective decisions
+7. **Portability is sacred** - Core is pure TypeScript, platform code in adapters
 
 ### Architecture Summary
 
@@ -72,8 +74,8 @@ DESTINATIONS (visits like going to work)
 
 | Phase | Goal |
 |-------|------|
-| 1 | Agent runtime + collective foundation |
-| 2 | Memory consolidation + Telegram |
+| 1 | Agent runtime + collective + memory consolidation + curiosity |
+| 2 | Telegram + multiple collectives |
 | 3 | Phone app with sensors |
 | 4 | Full autonomy |
 

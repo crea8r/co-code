@@ -11,6 +11,8 @@
 - **Technical**
   - [Where Agent Lives](technical/architecture.md)
   - [The Body: Phone and Sensors](technical/body.md)
+  - [Portability: Sacred Rules](technical/portability.md)
+  - [Phase 1 Architecture](technical/phase1-architecture.md)
   - [Building It: Phases](technical/building.md)
 
 - **Reference**

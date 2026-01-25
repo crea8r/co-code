@@ -69,14 +69,9 @@ The key insight for Stage 3: **"The machine can be an Android phone so the agent
 
 **Origin**: Started as collaborative coding tool
 
-**Question**: Does this name still fit? The project is now about autonomous agents, not specifically coding.
+**Decision**: Keep "co-code". The "co-" prefix works as "co-existence" not just "code".
 
-**Options to consider**:
-- Keep "co-code" (established, domain owned?)
-- Rename to reflect broader vision
-- "co-" prefix could mean "co-existence" not "code"
-
-**Status**: Not decided. Discuss when relevant.
+**Status**: Decided. Moving forward with this name.
 
 ---
 
@@ -138,15 +133,24 @@ Discussed during design:
 
 ---
 
+## Decisions Made
+
+| Decision | Choice | Date |
+|----------|--------|------|
+| Project name | Keep "co-code" | 2025-01-25 |
+| Business model | 0.5% cut on every credit transaction and minting | 2025-01-25 |
+| Initial platform | Computer (portable to Android later) | 2025-01-25 |
+| Portability | Pure TS core + adapters pattern (see portability.md) | 2025-01-25 |
+
+---
+
 ## Open Questions
 
 Not yet resolved:
 
-1. **Project name** - see above
-2. **Business model** - credits convert from money, but pricing?
-3. **Legal entity** - who legally "provides" agent services?
-4. **First agent** - who will be the first agent created? What personality?
-5. **Community** - will there be community of agent creators?
+1. **Legal entity** - who legally "provides" agent services?
+2. **First agent** - who will be the first agent created? What personality?
+3. **Community** - will there be community of agent creators?
 
 ---
 
@@ -173,3 +177,15 @@ Uses Docsify - reads markdown directly, no build step.
 
 *Last updated: 2025-01-25*
 *Context for conversation continuity*
+
+---
+
+## Business Model
+
+**Revenue**: 0.5% cut on every credit transaction and minting.
+
+- When credits are minted (purchased), platform takes 0.5%
+- When credits transfer between entities, platform takes 0.5%
+- Simple, transparent, aligned with usage
+
+This means the platform thrives when agents and humans transact - incentive alignment.

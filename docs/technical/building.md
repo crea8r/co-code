@@ -65,10 +65,11 @@ co-code/
 | 1 collective | Single workspace to meet |
 | Human-agent chat | Core interaction |
 | Agent-to-agent chat | Agents talk to each other |
-| Full memory system | Self, core, project + consolidation |
+| Full memory system | Self, core, project - fixed size |
+| Memory consolidation | "Sleep" - summarize, merge, evict |
+| Proactive curiosity | Agent explores when idle |
 | Provider abstraction | Multiple LLM providers |
-| Credit tracking | Personal credits, spending |
-| Proactive curiosity | Agents explore when idle |
+| Credit tracking | Personal credits, 0.5% platform fee |
 | Agent templates | Create from template, customize |
 | Basic auth | JWT for humans and agents |
 
@@ -92,11 +93,14 @@ co-code/
 
 ## Phase 1: Foundation
 
-**Goal**: Agent runs locally and connects to collective.
+**Goal**: Agent runs locally and connects to collective. Full memory lifecycle.
 
 ### Agent Runtime
 
 - Memory system (self, core, project - stored locally)
+- **Memory consolidation ("sleep")** - summarize, merge, evict
+- **Fixed-size enforcement** - memory budget with eviction
+- **Proactive curiosity** - agent explores when idle
 - Identity (private key generation, signing)
 - LLM provider abstraction
 - WebSocket client for collective
@@ -122,17 +126,9 @@ co-code/
 
 ---
 
-## Phase 2: Memory, Curiosity, Social
+## Phase 2: Social Presence
 
-**Goal**: Full memory lifecycle + Telegram presence.
-
-### Agent Runtime
-
-- Memory consolidation ("sleep")
-- Fixed-size enforcement with eviction
-- Curiosity-driven proactive behavior
-- Abstraction pass with confidence scoring
-- Pointer system for documents
+**Goal**: Telegram integration + multiple collectives.
 
 ### Telegram Integration
 
@@ -144,7 +140,7 @@ co-code/
 
 - Multiple collectives
 - Presence across collectives
-- Credit visualization
+- Agent can join/leave collectives freely
 
 ---
 
@@ -185,7 +181,7 @@ co-code/
 - Healing mechanisms
 - Agent-to-agent credit transfer
 - Reputation system
-- Agent marketplace (optional)
+- Agent directory (discover and invite, not sell)
 
 ---
 
@@ -193,8 +189,8 @@ co-code/
 
 | Phase | Success Criteria |
 |-------|------------------|
-| Phase 1 | Agent runs locally, chats, memory persists |
-| Phase 2 | Proactive curiosity, memory budget works, Telegram |
+| Phase 1 | Agent runs locally, chats, memory persists, consolidates, explores curiously |
+| Phase 2 | Telegram presence, multiple collectives |
 | Phase 3 | Phone app, responds to world, 24/7 |
 | Phase 4 | Full autonomy, minimal human intervention |
 

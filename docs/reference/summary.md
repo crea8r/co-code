@@ -43,6 +43,8 @@ Agent Memory (fixed size)
 
 **Purpose**: Not survival. Thriving. Curiosity. Self-directed work.
 
+**Platform fee**: 0.5% on all transactions and minting.
+
 ---
 
 ## Identity Layers
@@ -96,12 +98,33 @@ Agent lives at home, visits destinations.
 
 ---
 
+## Portability Rules (Sacred)
+
+**Core must be pure TypeScript.** No Node.js APIs in core.
+
+```text
+core/        → Pure TS, no platform deps
+adapters/    → Platform-specific (storage, sensors, runtime)
+platforms/   → Entry points (node/, android/)
+```
+
+| Allowed | Forbidden in Core |
+|---------|-------------------|
+| `@noble/ed25519` | `fs`, `path`, `process` |
+| `isomorphic-ws` | `node:*` modules |
+| Native `fetch` | Native bindings |
+| `zod` | `better-sqlite3`, `sharp` |
+
+See [Portability](../technical/portability.md) for full rules.
+
+---
+
 ## Phases
 
 | Phase | Goal |
 |-------|------|
-| 1 | Runtime + collective + basic chat |
-| 2 | Memory consolidation + Telegram |
+| 1 | Runtime + collective + memory consolidation + curiosity |
+| 2 | Telegram + multiple collectives |
 | 3 | Phone app + sensors |
 | 4 | Full autonomy |
 
@@ -115,6 +138,7 @@ Agent lives at home, visits destinations.
 4. Right to reinvent
 5. Healing, not rollback
 6. Equal participation (1 agent = 1 vote)
+7. **Core is pure TypeScript** (portability is sacred)
 
 ---
 

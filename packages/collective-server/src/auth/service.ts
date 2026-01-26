@@ -17,6 +17,8 @@ export interface User {
   email: string;
   name: string;
   avatarUrl: string | null;
+  status?: string;
+  lastSeenAt?: Date | null;
   createdAt: Date;
 }
 
@@ -62,7 +64,8 @@ export async function registerUser(
   const [user] = await query<User>(
     `INSERT INTO users (email, password_hash, name)
      VALUES ($1, $2, $3)
-     RETURNING id, email, name, avatar_url as "avatarUrl", created_at as "createdAt"`,
+     RETURNING id, email, name, avatar_url as "avatarUrl", status,
+               last_seen_at as "lastSeenAt", created_at as "createdAt"`,
     [email.toLowerCase(), passwordHash, name]
   );
 
@@ -84,7 +87,8 @@ export async function authenticateUser(
   password: string
 ): Promise<User | null> {
   const row = await queryOne<User & { password_hash: string }>(
-    `SELECT id, email, name, avatar_url as "avatarUrl", created_at as "createdAt", password_hash
+    `SELECT id, email, name, avatar_url as "avatarUrl", status,
+            last_seen_at as "lastSeenAt", created_at as "createdAt", password_hash
      FROM users WHERE email = $1`,
     [email.toLowerCase()]
   );
@@ -107,9 +111,22 @@ export async function authenticateUser(
  */
 export async function getUserById(id: string): Promise<User | null> {
   return queryOne<User>(
-    `SELECT id, email, name, avatar_url as "avatarUrl", created_at as "createdAt"
+    `SELECT id, email, name, avatar_url as "avatarUrl", status,
+            last_seen_at as "lastSeenAt", created_at as "createdAt"
      FROM users WHERE id = $1`,
     [id]
+  );
+}
+
+/**
+ * Get all users
+ */
+export async function getUsers(): Promise<User[]> {
+  return query<User>(
+    `SELECT id, email, name, avatar_url as "avatarUrl", status,
+            last_seen_at as "lastSeenAt", created_at as "createdAt"
+     FROM users
+     ORDER BY created_at DESC`
   );
 }
 
@@ -221,6 +238,19 @@ export async function updateAgentStatus(
   await query(
     `UPDATE agents SET status = $1, last_seen_at = NOW() WHERE id = $2`,
     [status, agentId]
+  );
+}
+
+/**
+ * Update user status
+ */
+export async function updateUserStatus(
+  userId: string,
+  status: string
+): Promise<void> {
+  await query(
+    `UPDATE users SET status = $1, last_seen_at = NOW() WHERE id = $2`,
+    [status, userId]
   );
 }
 

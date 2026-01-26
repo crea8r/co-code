@@ -12,6 +12,7 @@ import type {
   Message,
   EntityType,
   PresenceStatus,
+  AttentionState,
 } from '@co-code/shared';
 import * as channelsService from '../channels/service.js';
 import * as authService from '../auth/service.js';
@@ -94,6 +95,15 @@ async function handleClientEvent(
     case 'set_status':
       await handleSetStatus(socket, event.status);
       break;
+
+    case 'set_attention':
+      await handleSetAttention(
+        socket,
+        event.channelId,
+        event.state,
+        event.queueSize
+      );
+      break;
   }
 }
 
@@ -129,6 +139,7 @@ async function handleAuthenticate(
         });
         return;
       }
+      await authService.updateUserStatus(payload.sub, 'online');
     } else {
       const agent = await authService.getAgentById(payload.sub);
       if (!agent) {
@@ -301,6 +312,38 @@ async function handleSendMessage(
       sendEvent(client, event);
     }
   }
+
+  const text = content.text || '';
+  if (!text) return;
+
+  const members = await channelsService.getChannelMembers(channelId);
+  const mentionedAgents = members.filter(
+    (member) =>
+      member.memberType === 'agent' && text.includes(`@${member.memberId}`)
+  );
+
+  for (const member of mentionedAgents) {
+    const target = entityConnections.get(member.memberId);
+    if (!target) continue;
+    if (!target.channels.has(channelId)) continue;
+    sendEvent(target.socket, {
+      type: 'mention',
+      message: {
+        id: message.id,
+        channelId: message.channelId,
+        senderId: message.senderId,
+        senderType: message.senderType,
+        content: message.content,
+        createdAt: typeof message.createdAt === 'object'
+          ? (message.createdAt as Date).getTime()
+          : message.createdAt,
+        editedAt: null,
+      },
+      mentionedEntityId: member.memberId,
+      mentionedEntityType: 'agent',
+      timestamp: Date.now(),
+    });
+  }
 }
 
 /**
@@ -338,13 +381,45 @@ async function handleSetStatus(
   const connection = connections.get(socket);
   if (!connection) return;
 
-  // Update in database if agent
+  // Update in database
   if (connection.entityType === 'agent') {
     await authService.updateAgentStatus(connection.entityId, status);
+  } else {
+    await authService.updateUserStatus(connection.entityId, status);
   }
 
   // Broadcast presence change
   broadcastPresence(connection.entityId, connection.entityType, status);
+}
+
+/**
+ * Handle attention updates
+ */
+async function handleSetAttention(
+  socket: WebSocket,
+  channelId: string,
+  state: AttentionState,
+  queueSize: number
+): Promise<void> {
+  const connection = connections.get(socket);
+  if (!connection) return;
+  if (connection.entityType !== 'agent') return;
+
+  const room = channelRooms.get(channelId);
+  if (!room) return;
+
+  const event: ServerEvent = {
+    type: 'attention_change',
+    channelId,
+    agentId: connection.entityId,
+    state,
+    queueSize,
+    timestamp: Date.now(),
+  };
+
+  for (const client of room) {
+    sendEvent(client, event);
+  }
 }
 
 /**
@@ -368,6 +443,8 @@ function handleDisconnect(socket: WebSocket): void {
   // Update agent status
   if (connection.entityType === 'agent') {
     authService.updateAgentStatus(connection.entityId, 'offline').catch(console.error);
+  } else {
+    authService.updateUserStatus(connection.entityId, 'offline').catch(console.error);
   }
 
   // Broadcast presence

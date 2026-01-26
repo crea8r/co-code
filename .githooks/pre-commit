@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+# Block accidental local artifacts
+if git diff --cached --name-only | rg -q "(^|/)\.DS_Store$"; then
+  echo "Error: .DS_Store is staged. Remove it before committing." >&2
+  exit 1
+fi
+
+if git diff --cached --name-only | rg -q "^\.dependencygraph/"; then
+  echo "Error: .dependencygraph/ is staged. Remove it before committing." >&2
+  exit 1
+fi

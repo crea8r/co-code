@@ -42,13 +42,14 @@ export interface AgentKeyPair {
 
 /**
  * Generate a new key pair for an agent
+ * @param existingId - Optional ID to use (from collective). If not provided, generates new UUID.
  */
-export function generateKeyPair(): AgentKeyPair {
+export function generateKeyPair(existingId?: string): AgentKeyPair {
   const privateKeyBytes = ed.utils.randomPrivateKey();
   const publicKeyBytes = ed.getPublicKey(privateKeyBytes);
 
   return {
-    id: uuidv4(),
+    id: existingId || uuidv4(),
     privateKey: toHex(privateKeyBytes),
     publicKey: toHex(publicKeyBytes),
     createdAt: Date.now(),

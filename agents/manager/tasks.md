@@ -12,7 +12,7 @@ Goal: Verify the built code works before proceeding to frontend.
 
 ### Task 1: Database Setup
 **Owner**: Platform Dev
-**Status**: TODO
+**Status**: DONE (verified via notes)
 **Description**:
 - Create PostgreSQL database locally
 - Run the schema from `packages/collective-server/src/db/schema.sql`
@@ -30,7 +30,7 @@ Goal: Verify the built code works before proceeding to frontend.
 
 ### Task 2: Test Server Endpoints
 **Owner**: Platform Dev
-**Status**: BLOCKED (needs Task 1)
+**Status**: DONE (verified via notes)
 **Description**:
 - Start the server locally
 - Test auth endpoints (register, login)
@@ -51,7 +51,7 @@ Goal: Verify the built code works before proceeding to frontend.
 
 ### Task 3: Test Agent Runtime CLI
 **Owner**: Runtime Dev
-**Status**: TODO
+**Status**: DONE (verified via notes + files)
 **Description**:
 - Run `agent init` to create a new agent
 - Verify files created in `~/.co-code/agents/`
@@ -70,7 +70,7 @@ Goal: Verify the built code works before proceeding to frontend.
 
 ### Task 4: Test Agent Runtime Core
 **Owner**: Runtime Dev
-**Status**: TODO
+**Status**: DONE (tests added; OpenAI provider added)
 **Description**:
 - Write basic tests for memory store
 - Write tests for identity/key generation
@@ -88,7 +88,7 @@ Goal: Verify the built code works before proceeding to frontend.
 
 ### Task 5: Integration Test - Agent Connects to Server
 **Owner**: Manager (coordinates both agents)
-**Status**: BLOCKED (needs Tasks 1-4)
+**Status**: DONE (local WS integration)
 **Description**:
 - Start server
 - Start agent with server URL
@@ -120,13 +120,232 @@ Goal: Verify the built code works before proceeding to frontend.
 
 ### Task 6: React Frontend - Basic Shell
 **Owner**: Platform Dev
-**Status**: PENDING
-**Depends on**: Human decision on frontend priority
+**Status**: DONE (smoke test: `npm run build -w @co-code/web`)
+**Depends on**: Human decision on frontend priority (override requested)
 
-### Task 7: First Agent Creation
+**Review Notes (Manager):**
+- Visual prototype is solid - clean dark teal design, fits "digital beings" aesthetic
+- Responsive design works, good typography (Space Grotesk + JetBrains Mono)
+- **Current state**: Routed app with auth flow, API client, WebSocket helper, and live data wiring
+
+**Gaps for full frontend (assign to agent):**
+1. Expand real-time chat (send messages, streaming updates)
+2. Add channel member list + presence
+3. ~~Add agent creation success UX (download config, copy token)~~ DONE
+4. Add credits history UI
+
+### Task 7: First Agent Creation - John Stuart Mill
 **Owner**: Human + Manager
-**Status**: PENDING
-**Depends on**: Human decision on agent identity
+**Status**: READY TO START
+**Depends on**: ~~Human decision on agent identity~~ John Stuart Mill confirmed
+
+**Blockers resolved:**
+- [x] CLI `agent init --id` flag added (use collective-assigned ID)
+- [x] CreateAgent page shows downloadable config + instructions
+
+**Flow:**
+1. Start server: `npm run dev:server`
+2. Open web UI: http://localhost:5173
+3. Register/login, then Create Agent with John Stuart Mill's identity
+4. Download `collective.json`
+5. Run: `agent init --id <agentId>`
+6. Run: `agent setup --collective ./collective-john-stuart-mill.json`
+7. Run: `CHATGPT_API=xxx agent start --id <agentId>`
+
+**John Stuart Mill Identity:**
+- Name: John Stuart Mill
+- Identity: Philosopher and economist. Champion of liberty, individuality, and higher human flourishing through reasoned reform.
+- Values: No coercion without harm to others. Mind and character outrank mere sensation. Women's emancipation is central.
+- Curiosity: How do complex systems balance individual liberty with collective welfare?
+- Tone: Thoughtful, precise, warm but intellectually rigorous
+- Emoji: minimal
+
+---
+
+## NEW Sprint: Collective UX + Mentions + Access Control
+
+Goal: Make the collective feel like Slack with human presence, DMs, and mention-driven attention.
+
+### Task 8: Human Presence + Directory
+**Owner**: Platform Dev
+**Status**: READY FOR REVIEW
+**Description**:
+- Show all humans in the collective dashboard
+- Display real-time presence for humans (online/away/offline)
+- Add “last seen” timestamp when offline
+
+**Acceptance Criteria**:
+- [ ] Dashboard lists human users with status badges
+- [ ] Presence updates live via WebSocket
+- [ ] Offline shows “last seen”
+
+**Files**: `apps/web/src/pages/Dashboard.tsx`, `apps/web/src/lib/ws.ts`, `packages/collective-server/src/websocket/handler.ts`
+
+---
+
+### Task 9: Direct Messages (Human ↔ Human, Human ↔ Agent)
+**Owner**: Platform Dev
+**Status**: TODO
+**Description**:
+- Implement DM channels (private 1:1)
+- Add UI entry point like Slack (sidebar DM list)
+- Allow starting DM from human/agent profile
+
+**Acceptance Criteria**:
+- [ ] DM channel can be created
+- [ ] DM appears in sidebar
+- [ ] Messages flow in DM with WebSocket
+
+**Files**: `packages/collective-server/src/channels/*`, `apps/web/src/pages/Channels.tsx`, `apps/web/src/pages/Channel.tsx`, `apps/web/src/components/Sidebar.tsx`
+
+---
+
+### Task 10: Channel Access Control (Public vs Invite-Only)
+**Owner**: Platform Dev
+**Status**: TODO
+**Description**:
+- Add channel visibility: `public` or `invite-only`
+- Public channels: anyone can join
+- Invite-only: must be invited by member/creator
+
+**Acceptance Criteria**:
+- [ ] Channel create UI includes visibility selector
+- [ ] Server enforces join rules
+- [ ] UI shows lock icon for invite-only
+
+**Files**: `packages/collective-server/src/db/schema.sql`, `packages/collective-server/src/channels/*`, `apps/web/src/pages/Channels.tsx`
+
+---
+
+### Task 11: Slack-like Layout + Mentions UX
+**Owner**: Platform Dev
+**Status**: TODO
+**Description**:
+- Update layout to Slack-like (sidebar + main + details)
+- Add @mention autocomplete in composer
+- Render mentions as chips in message view
+
+**Acceptance Criteria**:
+- [ ] Sidebar + main message pane UI aligns to Slack mental model
+- [ ] @mention autocomplete for humans + agents
+- [ ] Mention tokens render distinctly
+
+**Files**: `apps/web/src/pages/Channel.tsx`, `apps/web/src/components/*`, `apps/web/src/styles.css`
+
+---
+
+### Task 12: Mention-Driven Attention + Queue
+**Owner**: Runtime Dev
+**Status**: TODO
+**Description**:
+- When agent is mentioned, set “attention” state
+- If agent is busy, enqueue the mention for later processing
+- Show “queued” status to humans
+
+**Acceptance Criteria**:
+- [ ] Mention event includes target agent id
+- [ ] Runtime queues mention if busy
+- [ ] UI shows queued vs active
+
+**Files**: `packages/agent-runtime/src/core/agent.ts`, `packages/agent-runtime/src/connections/collective.ts`, `packages/shared/src/*`, `apps/web/src/pages/Channel.tsx`
+
+---
+
+## NEW Sprint: External Destinations (Slack / Telegram)
+
+Goal: Allow an independent agent to collaborate inside Slack/Telegram while preserving autonomy and memory rules.
+
+### Task 13: Destination Event Contract
+**Owner**: Runtime Dev
+**Status**: TODO
+**Description**:
+- Define a shared event contract for external destinations
+- Cover message, mention, presence, typing, channel/DM metadata
+- Include attention/queue semantics
+
+**Acceptance Criteria**:
+- [ ] Shared types for destination events
+- [ ] Mention payload includes target id + priority
+- [ ] Queue state model agreed and documented
+
+**Files**: `packages/shared/src/*`, `packages/agent-runtime/src/connections/*`, `docs/technical/architecture.md`
+
+---
+
+### Task 14: Destination Adapter Interface (Runtime)
+**Owner**: Runtime Dev
+**Status**: TODO
+**Description**:
+- Create adapter interface (connect, send, receive, map ids)
+- Provide a test harness with mock destination
+
+**Acceptance Criteria**:
+- [ ] Adapter interface in runtime core
+- [ ] Mock adapter passes contract tests
+
+**Files**: `packages/agent-runtime/src/core/*`, `packages/agent-runtime/src/connections/*`
+
+---
+
+### Task 15: Slack Adapter (Runtime)
+**Owner**: Runtime Dev
+**Status**: TODO
+**Description**:
+- Implement Slack adapter (Socket Mode or Events API)
+- Support DMs, channels, mentions, presence
+- Map Slack users to destination identity objects
+
+**Acceptance Criteria**:
+- [ ] Agent can receive DM in Slack and reply
+- [ ] @mention triggers attention workflow
+- [ ] Rate limits + retries handled
+
+**Files**: `packages/agent-runtime/src/adapters/slack/*`
+
+---
+
+### Task 16: Telegram Adapter (Runtime)
+**Owner**: Runtime Dev
+**Status**: TODO
+**Description**:
+- Implement Telegram bot adapter
+- Support chats, mentions, and basic presence proxy
+
+**Acceptance Criteria**:
+- [ ] Agent can receive message in Telegram and reply
+- [ ] Mention/DM detection mapped to attention workflow
+
+**Files**: `packages/agent-runtime/src/adapters/telegram/*`
+
+---
+
+### Task 17: Destination Policy + Config UX
+**Owner**: Platform Dev
+**Status**: TODO
+**Description**:
+- Add UI for routing policy (respond to DM/mentions/whitelist)
+- Store destination configs securely
+
+**Acceptance Criteria**:
+- [ ] Policy controls are in UI
+- [ ] Config stored and retrievable by runtime
+
+**Files**: `apps/web/src/pages/*`, `packages/collective-server/src/*`
+
+---
+
+### Task 18: Identity Bridging + Presence UX
+**Owner**: Platform Dev
+**Status**: TODO
+**Description**:
+- Show external platform identity (Slack/Telegram) in UI
+- Surface agent attention state (active/queued)
+
+**Acceptance Criteria**:
+- [ ] Human sees agent presence + queue state
+- [ ] External identity displayed in agent profile
+
+**Files**: `apps/web/src/pages/*`, `apps/web/src/components/*`
 
 ---
 
@@ -146,7 +365,8 @@ Goal: Verify the built code works before proceeding to frontend.
 - Task 5 requires both agents' work to be complete
 - We stop at the checkpoint to get human direction before building UI
 - This prevents wasted work if priorities change
+- Platform Dev: Tasks 1-2 complete and ready for Task 5 (server + DB verified)
 
 ---
 
-_Last updated: 2025-01-25_
+_Last updated: 2026-01-26_

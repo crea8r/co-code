@@ -14,6 +14,7 @@ import { MemoryConsolidator } from './memory/consolidation.js';
 import { CuriosityExplorer } from './curiosity/explorer.js';
 import type { LLMProvider, LLMConfig } from './llm/provider.js';
 import { AnthropicProvider } from './llm/anthropic.js';
+import { OpenAIProvider } from './llm/openai.js';
 import {
   generateKeyPair,
   sign,
@@ -23,6 +24,7 @@ import type {
   AgentSelf,
   PresenceStatus,
   MessageContent,
+  AttentionState,
 } from '@co-code/shared';
 
 export interface AgentConfig {
@@ -47,6 +49,8 @@ export interface AgentState {
   connected: boolean;
   /** Current credits balance */
   credits: number;
+  /** Mention attention state */
+  attention: AttentionState;
 }
 
 export class Agent {
@@ -60,6 +64,7 @@ export class Agent {
     initialized: false,
     connected: false,
     credits: 0,
+    attention: 'idle',
   };
   private config: AgentConfig;
 
@@ -82,6 +87,8 @@ export class Agent {
     // Create LLM provider
     if (config.llm.provider === 'anthropic') {
       this.llm = new AnthropicProvider(config.llm);
+    } else if (config.llm.provider === 'openai') {
+      this.llm = new OpenAIProvider(config.llm);
     } else {
       throw new Error(`Unsupported LLM provider: ${config.llm.provider}`);
     }
@@ -198,6 +205,13 @@ export class Agent {
    */
   getState(): AgentState {
     return { ...this.state };
+  }
+
+  /**
+   * Set attention state
+   */
+  setAttentionState(state: AttentionState): void {
+    this.state.attention = state;
   }
 
   /**

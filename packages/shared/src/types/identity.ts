@@ -53,3 +53,9 @@ export type PresenceStatus =
   | 'sleeping'  // Consolidating memory
   | 'exploring' // Proactive curiosity
   | 'offline';  // Not connected
+
+/** Agent attention state */
+export type AttentionState =
+  | 'idle'    // Not focused on a mention
+  | 'active'  // Actively handling a mention
+  | 'queued'; // Mentions queued while busy

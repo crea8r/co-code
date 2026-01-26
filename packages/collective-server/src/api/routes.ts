@@ -192,6 +192,25 @@ export function registerRoutes(app: FastifyInstance): void {
   );
 
   // ============================================
+  // USER ROUTES
+  // ============================================
+
+  // List users (directory)
+  app.get(
+    '/users',
+    { preHandler: [app.authenticate] },
+    async (request: FastifyRequest, reply) => {
+      const req = request as AuthenticatedRequest;
+      if (req.user.type !== 'user') {
+        return reply.status(403).send({ error: 'Only users can list users' });
+      }
+
+      const users = await authService.getUsers();
+      return { users };
+    }
+  );
+
+  // ============================================
   // CHANNEL ROUTES
   // ============================================
 

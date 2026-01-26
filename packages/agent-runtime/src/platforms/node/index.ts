@@ -9,7 +9,7 @@ import { NodeStorageAdapter } from '../../adapters/storage/node.js';
 import { NullSensorAdapter } from '../../adapters/sensors/null.js';
 import { NodeRuntimeAdapter } from '../../adapters/runtime/node.js';
 import { CollectiveConnection } from '../../connections/collective.js';
-import type { Message } from '@co-code/shared';
+import type { Message, AttentionState } from '@co-code/shared';
 
 export interface NodeAgentConfig extends AgentConfig {
   /** Directory for agent data (default: ~/.co-code/agents/{id}) */
@@ -50,6 +50,40 @@ export async function createAgent(
 
   // Connect to collective if URL provided
   let connection: CollectiveConnection | null = null;
+  const mentionQueue: Message[] = [];
+  let handlingMention = false;
+  let lastMentionChannel: string | null = null;
+
+  const updateAttention = (
+    channelId: string,
+    state: AttentionState
+  ): void => {
+    agent.setAttentionState(state);
+    lastMentionChannel = channelId;
+    connection?.setAttention(channelId, state, mentionQueue.length);
+  };
+
+  const processMentionQueue = async (): Promise<void> => {
+    if (handlingMention) return;
+    handlingMention = true;
+    while (mentionQueue.length > 0) {
+      const message = mentionQueue.shift();
+      if (!message) continue;
+      updateAttention(message.channelId, 'active');
+      const response = await agent.handleMessage(
+        message.channelId,
+        message.senderId,
+        message.content
+      );
+      if (connection && response) {
+        connection.sendMessage(message.channelId, { text: response });
+      }
+    }
+    handlingMention = false;
+    if (lastMentionChannel) {
+      updateAttention(lastMentionChannel, 'idle');
+    }
+  };
 
   if (config.collectiveUrl) {
     // Get token from config file
@@ -88,6 +122,16 @@ export async function createAgent(
               if (connection && response) {
                 connection.sendMessage(message.channelId, { text: response });
               }
+            },
+            onMention: async (event) => {
+              const message = event.message;
+              if (handlingMention) {
+                mentionQueue.push(message);
+                updateAttention(message.channelId, 'queued');
+                return;
+              }
+              mentionQueue.push(message);
+              await processMentionQueue();
             },
             onError: (error) => {
               runtime.log('error', 'Connection error', error);

@@ -12,6 +12,8 @@ import { createAgent } from './index.js';
 import { NodeStorageAdapter } from '../../adapters/storage/node.js';
 import { generateKeyPair } from '../../core/identity/keys.js';
 import type { AgentSelf } from '@co-code/shared';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import * as readline from 'node:readline';
 
 const args = process.argv.slice(2);
@@ -27,6 +29,9 @@ async function main(): Promise<void> {
       break;
     case 'status':
       await showStatus();
+      break;
+    case 'setup':
+      await setupCollective();
       break;
     case 'help':
     default:
@@ -45,25 +50,40 @@ Commands:
   start     Start the agent
   init      Initialize a new agent interactively
   status    Show agent status
+  setup     Write collective config for an agent
   help      Show this help message
 
 Options for 'start':
-  --config <path>   Path to config file (default: ~/.co-code/config.json)
-  --id <agentId>    Agent ID to start
+  --config <path>    Path to config file (default: ~/.co-code/config.json)
+  --id <agentId>     Agent ID to start
+  --provider <name>  LLM provider (openai|anthropic). Defaults to CHATGPT_API then ANTHROPIC_API_KEY
+
+Options for 'init':
+  --id <agentId>     Use existing ID from collective (instead of generating new)
+
+Options for 'setup':
+  --collective <path>  Path to collective.json
+  --id <agentId>       Agent ID override (otherwise from file)
+  --data-dir <path>    Agent data root (default: ~/.co-code/agents)
 
 Examples:
-  agent init                    # Create a new agent
+  agent init                    # Create a new agent with generated ID
+  agent init --id abc123        # Create agent using collective-assigned ID
   agent start --id abc123       # Start agent with ID abc123
   agent status --id abc123      # Show status of agent abc123
+  agent setup --collective ./data/agents/john-stuart-mill/collective.json
 `);
 }
 
 async function startAgent(): Promise<void> {
   // Parse arguments
   const idIndex = args.indexOf('--id');
+  const providerIndex = args.indexOf('--provider');
   // const configIndex = args.indexOf('--config'); // Reserved for future use
 
   const agentId = idIndex !== -1 ? args[idIndex + 1] : undefined;
+  const providerArg =
+    providerIndex !== -1 ? args[providerIndex + 1] : undefined;
 
   if (!agentId) {
     console.error('Error: --id is required');
@@ -71,10 +91,56 @@ async function startAgent(): Promise<void> {
     process.exit(1);
   }
 
+  if (
+    providerArg &&
+    providerArg !== 'openai' &&
+    providerArg !== 'anthropic'
+  ) {
+    console.error('Error: --provider must be "openai" or "anthropic"');
+    process.exit(1);
+  }
+
   // Check for API key
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('Error: ANTHROPIC_API_KEY environment variable is required');
+  const openaiKey = process.env.CHATGPT_API;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+  const llmConfig =
+    providerArg === 'anthropic'
+      ? anthropicKey
+        ? {
+            provider: 'anthropic' as const,
+            apiKey: anthropicKey,
+            model: 'claude-sonnet-4-20250514',
+          }
+        : null
+      : providerArg === 'openai'
+        ? openaiKey
+          ? {
+              provider: 'openai' as const,
+              apiKey: openaiKey,
+              model: 'gpt-5',
+            }
+          : null
+        : openaiKey
+          ? {
+              provider: 'openai' as const,
+              apiKey: openaiKey,
+              model: 'gpt-5',
+            }
+          : anthropicKey
+            ? {
+                provider: 'anthropic' as const,
+                apiKey: anthropicKey,
+                model: 'claude-sonnet-4-20250514',
+              }
+            : null;
+
+  if (!llmConfig) {
+    console.error(
+      providerArg
+        ? `Error: ${providerArg === 'openai' ? 'CHATGPT_API' : 'ANTHROPIC_API_KEY'} environment variable is required`
+        : 'Error: CHATGPT_API or ANTHROPIC_API_KEY environment variable is required'
+    );
     process.exit(1);
   }
 
@@ -83,11 +149,7 @@ async function startAgent(): Promise<void> {
   try {
     const { agent } = await createAgent({
       agentId,
-      llm: {
-        provider: 'anthropic',
-        apiKey,
-        model: 'claude-sonnet-4-20250514',
-      },
+      llm: llmConfig,
     });
 
     const state = agent.getState();
@@ -111,12 +173,20 @@ async function initAgent(): Promise<void> {
   const question = (prompt: string): Promise<string> =>
     new Promise((resolve) => rl.question(prompt, resolve));
 
+  // Check for --id flag (use collective-assigned ID)
+  const idIndex = args.indexOf('--id');
+  const existingId = idIndex !== -1 ? args[idIndex + 1] : undefined;
+
   console.log('\n=== Create New Agent ===\n');
 
   try {
-    // Generate identity
-    const keyPair = generateKeyPair();
-    console.log(`Generated agent ID: ${keyPair.id}\n`);
+    // Generate identity (use existing ID if provided from collective)
+    const keyPair = generateKeyPair(existingId);
+    if (existingId) {
+      console.log(`Using collective-assigned ID: ${keyPair.id}\n`);
+    } else {
+      console.log(`Generated agent ID: ${keyPair.id}\n`);
+    }
 
     // Collect self information
     const name = await question('Agent name: ');
@@ -182,7 +252,12 @@ async function initAgent(): Promise<void> {
     console.log(`ID: ${keyPair.id}`);
     console.log(`Public Key: ${keyPair.publicKey}`);
     console.log(`\nTo start this agent:`);
-    console.log(`  ANTHROPIC_API_KEY=<your-key> agent start --id ${keyPair.id}`);
+    console.log(
+      `  CHATGPT_API=<your-key> agent start --id ${keyPair.id} --provider openai`
+    );
+    console.log(
+      `  ANTHROPIC_API_KEY=<your-key> agent start --id ${keyPair.id} --provider anthropic`
+    );
     console.log(`\nData stored in: ~/.co-code/agents/${keyPair.id}/`);
   } catch (error) {
     console.error('Error creating agent:', error);
@@ -229,6 +304,86 @@ async function showStatus(): Promise<void> {
   // Check memory usage
   const usage = await storage.totalSize();
   console.log(`\nStorage used: ${(usage / 1024).toFixed(2)} KB`);
+}
+
+async function setupCollective(): Promise<void> {
+  const collectiveIndex = args.indexOf('--collective');
+  const idIndex = args.indexOf('--id');
+  const dataDirIndex = args.indexOf('--data-dir');
+
+  const defaultCollectivePath = path.resolve(
+    process.cwd(),
+    'data',
+    'agents',
+    'john-stuart-mill',
+    'collective.json'
+  );
+
+  const collectivePath =
+    collectiveIndex !== -1 ? args[collectiveIndex + 1] : defaultCollectivePath;
+  const agentIdArg = idIndex !== -1 ? args[idIndex + 1] : undefined;
+  const dataDir = dataDirIndex !== -1 ? args[dataDirIndex + 1] : undefined;
+
+  if (!collectivePath) {
+    console.error('Error: --collective is required');
+    process.exit(1);
+  }
+
+  let raw: string;
+  try {
+    raw = await fs.readFile(collectivePath, 'utf-8');
+  } catch (error) {
+    console.error(`Error: unable to read ${collectivePath}`);
+    console.error(error);
+    process.exit(1);
+  }
+
+  let parsed: {
+    agentId?: string;
+    token?: string;
+    collectiveUrl?: string;
+  };
+  try {
+    parsed = JSON.parse(raw) as typeof parsed;
+  } catch (error) {
+    console.error('Error: collective.json is invalid JSON');
+    console.error(error);
+    process.exit(1);
+  }
+
+  const agentId = agentIdArg || parsed.agentId;
+  if (!agentId) {
+    console.error('Error: agentId missing (use --id or include in collective.json)');
+    process.exit(1);
+  }
+
+  if (!parsed.token || !parsed.collectiveUrl) {
+    console.error('Error: collective.json must include token and collectiveUrl');
+    process.exit(1);
+  }
+
+  const storage = new NodeStorageAdapter(agentId, dataDir);
+  await storage.write(
+    'identity/config',
+    JSON.stringify(
+      {
+        agentId,
+        token: parsed.token,
+        collectiveUrl: parsed.collectiveUrl,
+      },
+      null,
+      2
+    )
+  );
+
+  const hasIdentity = await storage.exists('identity/private_key');
+  if (!hasIdentity) {
+    console.warn(
+      'Warning: identity/private_key.json not found. Runtime will not start until a local identity exists.'
+    );
+  }
+
+  console.log(`Wrote identity/config for agent ${agentId}`);
 }
 
 main().catch((error) => {

@@ -15,7 +15,8 @@
     "dev:agent": "npm run dev -w @co-code/agent-runtime",
     "dev:web": "npm run dev -w @co-code/web",
     "docs": "npx serve docs -p 3000",
-    "docs:dev": "npx docsify-cli serve docs -p 3000"
+    "docs:dev": "npx docsify-cli serve docs -p 3000",
+    "hooks:install": "git config core.hooksPath .githooks"
   },
   "engines": {
     "node": ">=20.0.0"

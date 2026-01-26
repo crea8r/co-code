@@ -5,7 +5,7 @@
  */
 
 import type { Message, Channel } from './message.js';
-import type { PresenceStatus, EntityType } from './identity.js';
+import type { PresenceStatus, EntityType, AttentionState } from './identity.js';
 
 /** Base event structure */
 export interface BaseEvent {
@@ -51,6 +51,13 @@ export interface SetStatusEvent extends BaseEvent {
   status: PresenceStatus;
 }
 
+export interface SetAttentionEvent extends BaseEvent {
+  type: 'set_attention';
+  channelId: string;
+  state: AttentionState;
+  queueSize: number;
+}
+
 /** Union of all client → server events */
 export type ClientEvent =
   | AuthenticateEvent
@@ -58,7 +65,8 @@ export type ClientEvent =
   | LeaveChannelEvent
   | SendMessageEvent
   | TypingEvent
-  | SetStatusEvent;
+  | SetStatusEvent
+  | SetAttentionEvent;
 
 // ============================================
 // Server → Client Events
@@ -77,11 +85,26 @@ export interface NewMessageEvent extends BaseEvent {
   message: Message;
 }
 
+export interface MentionEvent extends BaseEvent {
+  type: 'mention';
+  message: Message;
+  mentionedEntityId: string;
+  mentionedEntityType: EntityType;
+}
+
 export interface PresenceChangeEvent extends BaseEvent {
   type: 'presence_change';
   entityId: string;
   entityType: EntityType;
   status: PresenceStatus;
+}
+
+export interface AttentionChangeEvent extends BaseEvent {
+  type: 'attention_change';
+  channelId: string;
+  agentId: string;
+  state: AttentionState;
+  queueSize: number;
 }
 
 export interface MemberTypingEvent extends BaseEvent {
@@ -106,7 +129,9 @@ export interface ErrorEvent extends BaseEvent {
 export type ServerEvent =
   | AuthenticatedEvent
   | NewMessageEvent
+  | MentionEvent
   | PresenceChangeEvent
+  | AttentionChangeEvent
   | MemberTypingEvent
   | ChannelJoinedEvent
   | ErrorEvent;
@@ -123,6 +148,7 @@ export function isClientEvent(event: WSEvent): event is ClientEvent {
     'send_message',
     'typing',
     'set_status',
+    'set_attention',
   ].includes(event.type);
 }
 
@@ -131,7 +157,9 @@ export function isServerEvent(event: WSEvent): event is ServerEvent {
   return [
     'authenticated',
     'new_message',
+    'mention',
     'presence_change',
+    'attention_change',
     'member_typing',
     'channel_joined',
     'error',

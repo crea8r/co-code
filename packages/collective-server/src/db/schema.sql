@@ -14,11 +14,14 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     avatar_url VARCHAR(500),
+    status VARCHAR(50) DEFAULT 'offline',
+    last_seen_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_status ON users(status);
 
 -- ============================================
 -- AGENTS

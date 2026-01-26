@@ -11,6 +11,7 @@ import type {
   ServerEvent,
   Message,
   PresenceStatus,
+  AttentionState,
 } from '@co-code/shared';
 
 export interface CollectiveConnectionConfig {
@@ -30,6 +31,7 @@ export interface CollectiveConnectionEvents {
   onConnected?: () => void;
   onDisconnected?: () => void;
   onMessage?: (message: Message) => void;
+  onMention?: (event: { message: Message; channelId: string }) => void;
   onPresenceChange?: (
     entityId: string,
     status: PresenceStatus
@@ -127,6 +129,13 @@ export class CollectiveConnection {
         this.events.onMessage?.(event.message);
         break;
 
+      case 'mention':
+        this.events.onMention?.({
+          message: event.message,
+          channelId: event.message.channelId,
+        });
+        break;
+
       case 'presence_change':
         this.events.onPresenceChange?.(event.entityId, event.status);
         break;
@@ -199,6 +208,23 @@ export class CollectiveConnection {
     this.send({
       type: 'typing',
       channelId,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Set attention state
+   */
+  setAttention(
+    channelId: string,
+    state: AttentionState,
+    queueSize: number
+  ): void {
+    this.send({
+      type: 'set_attention',
+      channelId,
+      state,
+      queueSize,
       timestamp: Date.now(),
     });
   }

@@ -2,9 +2,97 @@
 
 ## Your Current Assignments
 
-### Task 3: Test Agent Runtime CLI
+### Task 12: Mention-Driven Attention + Queue
+
+**Status**: Ready for review
+**Priority**: High
+
+**What to do**:
+
+1. Define mention event payload in shared types
+2. Add runtime queue for mention events when busy
+3. Add attention state in agent (active/queued)
+
+**Acceptance**:
+
+- [ ] Mention events routed to agent
+- [ ] Busy agent queues mention
+- [ ] UI can read queued vs active state
+
+---
+
+### Task 13: Destination Event Contract
 
 **Status**: TODO
+**Priority**: High
+
+**What to do**:
+
+1. Define shared destination event types
+2. Add mention + attention payloads
+3. Document queue semantics
+
+**Acceptance**:
+
+- [ ] Types in shared package
+- [ ] Contract tests pass
+
+---
+
+### Task 14: Destination Adapter Interface
+
+**Status**: TODO
+**Priority**: High
+
+**What to do**:
+
+1. Create adapter interface in runtime
+2. Implement mock adapter for tests
+
+**Acceptance**:
+
+- [ ] Interface exists
+- [ ] Mock adapter passes tests
+
+---
+
+### Task 15: Slack Adapter
+
+**Status**: TODO
+**Priority**: Medium
+
+**What to do**:
+
+1. Implement Slack adapter (Socket Mode or Events API)
+2. Map Slack events → destination contract
+
+**Acceptance**:
+
+- [ ] DM receive + reply
+- [ ] @mention triggers attention
+
+---
+
+### Task 16: Telegram Adapter
+
+**Status**: TODO
+**Priority**: Medium
+
+**What to do**:
+
+1. Implement Telegram bot adapter
+2. Map updates → destination contract
+
+**Acceptance**:
+
+- [ ] Message receive + reply
+- [ ] Mention/DM mapped to attention
+
+---
+
+### Task 3: Test Agent Runtime CLI
+
+**Status**: DONE
 **Priority**: High
 
 **What to do**:
@@ -34,7 +122,7 @@
 
 ### Task 4: Test Agent Runtime Core
 
-**Status**: TODO
+**Status**: DONE
 **Priority**: High
 
 **What to do**:

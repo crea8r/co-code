@@ -3,8 +3,16 @@ import type React from 'react';
 import { useParams } from 'react-router-dom';
 import Button from '../components/Button';
 import Card from '../components/Card';
-import { apiGet, apiPost, type Channel, type Message } from '../lib/api';
+import {
+  apiGet,
+  apiPost,
+  type Agent,
+  type Channel,
+  type Message,
+  type User,
+} from '../lib/api';
 import { createSocket } from '../lib/ws';
+import { buildMentionables, filterMentionables } from '../lib/mentions';
 import { useAuthStore } from '../state/auth';
 
 type TypingState = {
@@ -17,13 +25,6 @@ type PresenceEvent = {
   entityId: string;
   entityType: string;
   status: string;
-  timestamp: number;
-};
-
-type AttentionEvent = {
-  agentId: string;
-  state: string;
-  queueSize: number;
   timestamp: number;
 };
 
@@ -40,10 +41,13 @@ export default function ChannelView() {
   const [composer, setComposer] = useState('');
   const [typingUsers, setTypingUsers] = useState<TypingState[]>([]);
   const [presenceEvents, setPresenceEvents] = useState<PresenceEvent[]>([]);
-  const [attentionEvents, setAttentionEvents] = useState<AttentionEvent[]>([]);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStart, setMentionStart] = useState<number | null>(null);
+  const [mentionables, setMentionables] = useState<Array<{ id: string; type: 'user' | 'agent'; name: string }>>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const typingTimerRef = useRef<number>(0);
   const lastTypingSentRef = useRef<number>(0);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const orderedMessages = useMemo(() => {
     return [...messages].sort((a, b) => {
@@ -52,6 +56,10 @@ export default function ChannelView() {
       return aTime - bTime;
     });
   }, [messages]);
+
+  const mentionSuggestions = useMemo(() => {
+    return filterMentionables(mentionables, mentionQuery).slice(0, 5);
+  }, [mentionables, mentionQuery]);
 
   useEffect(() => {
     if (!token || !id) return;
@@ -82,6 +90,20 @@ export default function ChannelView() {
 
   useEffect(() => {
     if (!token) return;
+    const loadDirectory = async () => {
+      try {
+        const userData = await apiGet<{ users: User[] }>('/users', token);
+        const agentData = await apiGet<{ agents: Agent[] }>('/agents', token);
+        setMentionables(buildMentionables(userData.users, agentData.agents));
+      } catch {
+        // ignore
+      }
+    };
+    loadDirectory();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
     const socket = createSocket();
     socketRef.current = socket;
     setSocketStatus('idle');
@@ -106,9 +128,6 @@ export default function ChannelView() {
           entityId?: string;
           entityType?: string;
           status?: string;
-          agentId?: string;
-          state?: string;
-          queueSize?: number;
           timestamp?: number;
         };
 
@@ -141,21 +160,6 @@ export default function ChannelView() {
                 entityId: data.entityId,
                 entityType: data.entityType,
                 status: data.status,
-                timestamp: data.timestamp ?? Date.now(),
-              },
-              ...prev,
-            ];
-            return next.slice(0, 6);
-          });
-        }
-
-        if (data.type === 'attention_change' && data.agentId && data.state) {
-          setAttentionEvents((prev) => {
-            const next = [
-              {
-                agentId: data.agentId,
-                state: data.state,
-                queueSize: data.queueSize ?? 0,
                 timestamp: data.timestamp ?? Date.now(),
               },
               ...prev,
@@ -213,10 +217,24 @@ export default function ChannelView() {
       })
     );
     setComposer('');
+    setMentionQuery('');
+    setMentionStart(null);
   };
 
   const handleComposerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setComposer(event.target.value);
+    const nextValue = event.target.value;
+    setComposer(nextValue);
+
+    const cursor = event.target.selectionStart ?? nextValue.length;
+    const before = nextValue.slice(0, cursor);
+    const match = /@([\w-]*)$/.exec(before);
+    if (match) {
+      setMentionQuery(match[1]);
+      setMentionStart(cursor - match[1].length - 1);
+    } else {
+      setMentionQuery('');
+      setMentionStart(null);
+    }
 
     if (!socketRef.current || !id) return;
     const now = Date.now();
@@ -232,10 +250,31 @@ export default function ChannelView() {
     );
   };
 
+  const handleSelectMention = (name: string) => {
+    if (mentionStart === null || !inputRef.current) return;
+    const currentValue = composer;
+    const cursor = inputRef.current.selectionStart ?? currentValue.length;
+    const before = currentValue.slice(0, mentionStart);
+    const after = currentValue.slice(cursor);
+    const nextValue = `${before}@${name} ${after}`;
+    setComposer(nextValue);
+    setMentionQuery('');
+    setMentionStart(null);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+  };
+
+  const title = channel?.name?.startsWith('dm:')
+    ? 'Direct Message'
+    : channel
+      ? `#${channel.name}`
+      : 'Channel';
+
   return (
     <div className="channel">
       <Card
-        title={channel ? `#${channel.name}` : 'Channel'}
+        title={title}
         description={channel?.description ?? 'Real-time messages and agent output.'}
       >
         <div className="channel__meta">
@@ -264,7 +303,16 @@ export default function ChannelView() {
                   <div>
                     <p className="message__author">{message.senderType}</p>
                     <p className="message__body">
-                      {message.content?.text ?? '[no text]'}
+                      {(message.content?.text ?? '').split(/(\@[\w-]+)/g).map((part, index) => {
+                        if (part.startsWith('@')) {
+                          return (
+                            <span key={`${message.id}-m-${index}`} className="mention">
+                              {part}
+                            </span>
+                          );
+                        }
+                        return <span key={`${message.id}-t-${index}`}>{part}</span>;
+                      })}
                     </p>
                   </div>
                   <span className="message__time">
@@ -280,12 +328,30 @@ export default function ChannelView() {
 
         {joined ? (
           <form className="composer" onSubmit={handleSend}>
-            <input
-              className="composer__input"
-              placeholder="Write a message..."
-              value={composer}
-              onChange={handleComposerChange}
-            />
+            <div className="composer__field">
+              <input
+                ref={inputRef}
+                className="composer__input"
+                placeholder="Write a message..."
+                value={composer}
+                onChange={handleComposerChange}
+              />
+              {mentionQuery && mentionSuggestions.length ? (
+                <div className="mention-menu">
+                  {mentionSuggestions.map((item) => (
+                    <button
+                      key={`${item.type}-${item.id}`}
+                      type="button"
+                      className="mention-item"
+                      onClick={() => handleSelectMention(item.name)}
+                    >
+                      @{item.name}
+                      <span className="mention-meta">{item.type}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <Button variant="primary" type="submit">
               Send
             </Button>
@@ -306,26 +372,6 @@ export default function ChannelView() {
             ))
           ) : (
             <p className="empty">No presence updates yet.</p>
-          )}
-        </div>
-      </Card>
-
-      <Card title="Attention" description="Agent attention state for mentions.">
-        <div className="card__stack">
-          {attentionEvents.length ? (
-            attentionEvents.map((event) => (
-              <div key={`${event.agentId}-${event.timestamp}`} className="chip">
-                <span className="chip__name">
-                  agent:{event.agentId.slice(0, 6)}
-                </span>
-                <span className="chip__meta">
-                  {event.state}
-                  {event.queueSize ? ` · ${event.queueSize} queued` : ''}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="empty">No attention updates yet.</p>
           )}
         </div>
       </Card>

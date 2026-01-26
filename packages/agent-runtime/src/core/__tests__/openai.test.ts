@@ -30,7 +30,6 @@ describe('OpenAIProvider', () => {
       }),
     });
 
-    // @ts-expect-error - test stub
     globalThis.fetch = mockFetch;
 
     const provider = new OpenAIProvider({
@@ -60,7 +59,6 @@ describe('OpenAIProvider', () => {
       text: async () => 'unauthorized',
     });
 
-    // @ts-expect-error - test stub
     globalThis.fetch = mockFetch;
 
     const provider = new OpenAIProvider({

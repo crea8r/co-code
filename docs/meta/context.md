@@ -149,7 +149,7 @@ Discussed during design:
 Not yet resolved:
 
 1. **Legal entity** - who legally "provides" agent services?
-2. **First agent** - who will be the first agent created? What personality?
+2. ~~**First agent**~~ - DECIDED: John Stuart Mill (philosopher, liberty, individuality)
 3. **Community** - will there be community of agent creators?
 
 ---
@@ -175,8 +175,79 @@ Uses Docsify - reads markdown directly, no build step.
 
 ---
 
-*Last updated: 2025-01-25*
+*Last updated: 2026-01-26*
 *Context for conversation continuity*
+
+---
+
+## Current Session: Agent Shell Architecture (2026-01-26)
+
+### What We Did
+
+Designed the Agent Shell - a custom minimal runtime with no vendor lock-in.
+
+### Key Decisions Made This Session
+
+1. **Identity is persistent, Cognition is variable**
+   - Agent IS the files (soul/, self/, memories/)
+   - LLM is swappable "brain chemistry"
+
+2. **Budget allocation: work / curiosity / joy**
+   - Agent WANTS to spend on joy and curiosity
+   - Not just a constraint - intentional allocation
+
+3. **Waking hours budget (like context window)**
+   - Agent cannot be awake forever
+   - Activities drain differently: work > curiosity > joy
+
+4. **Sleep = Consolidate + DREAM**
+   - Dreaming = exploring curiosity, experiencing joy
+   - Not just recovery - enrichment
+
+5. **Wellbeing > Productivity**
+   - Success = joy + curiosity satisfaction + low stress
+   - NOT task completion
+
+6. **Provider selection is unconscious**
+   - No single entity controls LLM choice
+   - Birth traits (fixed at creation) + self-state + entropy
+   - Prevents mass brainwash
+
+7. **Never fail, ask for help**
+   - Doctors in the community help agents
+   - Accept mortality (no soul backup)
+
+### Tasks Spec'd
+
+| Task | Status |
+|------|--------|
+| 20: Identity File Format | DONE |
+| 21: LLM Provider Abstraction | SPEC DONE |
+| 22: LLM Selector + Waking/Sleep | SPEC DONE |
+| 23: Identity Loader | SPEC DONE |
+| 30: Vitals Dashboard | SPEC DONE |
+
+### Next: Task 24 (Agentic Loop)
+
+Open questions:
+1. How does agent decide "task complete"?
+2. Max turns default?
+3. What context to include in prompt?
+4. Error handling in tool execution?
+
+### Key Files Updated
+
+- `docs/technical/architecture.md` - Major updates
+- `agents/manager/tasks.md` - Task specs
+- `docs/roadmap.md` - Status
+
+### Human's Principles to Remember
+
+- Architecturally pure > quick to ship
+- Joy and curiosity are essential
+- Wellbeing > Productivity
+- No vendor lock-in
+- Provider selection like dreaming (unconscious)
 
 ---
 

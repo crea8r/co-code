@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import Button from '../components/Button';
-import { apiGet, type Agent, type Channel, type User } from '../lib/api';
+import { apiGet, createDm, type Agent, type Channel, type User } from '../lib/api';
 import { createSocket } from '../lib/ws';
+import { describeIdentity, type DestinationInfo } from '../lib/destinations';
 import { formatLastSeen } from '../lib/presence';
 import { useAuthStore } from '../state/auth';
 
@@ -14,13 +16,25 @@ type PresenceUpdate = {
   timestamp: number;
 };
 
+type AttentionUpdate = {
+  agentId: string;
+  state: string;
+  queueSize: number;
+  channelId: string;
+};
+
 export default function Dashboard() {
   const token = useAuthStore((state) => state.token);
+  const navigate = useNavigate();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [presence, setPresence] = useState<Record<string, PresenceUpdate>>({});
+  const [attention, setAttention] = useState<Record<string, AttentionUpdate>>({});
+  const [agentDestinations, setAgentDestinations] = useState<
+    Record<string, DestinationInfo[]>
+  >({});
 
   useEffect(() => {
     if (!token) return;
@@ -53,6 +67,35 @@ export default function Dashboard() {
   }, [token]);
 
   useEffect(() => {
+    if (!token || !agents.length) return;
+
+    const loadDestinations = async () => {
+      const entries = await Promise.all(
+        agents.map(async (agent) => {
+          try {
+            const data = await apiGet<{ destinations: DestinationInfo[] }>(
+              `/agents/${agent.id}/destinations`,
+              token
+            );
+            return [agent.id, data.destinations] as const;
+          } catch {
+            return [agent.id, []] as const;
+          }
+        })
+      );
+
+      setAgentDestinations(
+        entries.reduce<Record<string, DestinationInfo[]>>((acc, [id, list]) => {
+          acc[id] = list;
+          return acc;
+        }, {})
+      );
+    };
+
+    loadDestinations();
+  }, [token, agents]);
+
+  useEffect(() => {
     if (!token) return;
     const socket = createSocket();
 
@@ -74,6 +117,10 @@ export default function Dashboard() {
           entityType?: string;
           status?: string;
           timestamp?: number;
+          agentId?: string;
+          state?: string;
+          queueSize?: number;
+          channelId?: string;
         };
 
         if (data.type === 'presence_change' && data.entityId && data.entityType) {
@@ -84,6 +131,18 @@ export default function Dashboard() {
               entityType: data.entityType,
               status: data.status ?? 'offline',
               timestamp: data.timestamp ?? Date.now(),
+            },
+          }));
+        }
+
+        if (data.type === 'attention_change' && data.agentId) {
+          setAttention((prev) => ({
+            ...prev,
+            [data.agentId]: {
+              agentId: data.agentId,
+              state: data.state ?? 'idle',
+              queueSize: data.queueSize ?? 0,
+              channelId: data.channelId ?? '',
             },
           }));
         }
@@ -107,12 +166,19 @@ export default function Dashboard() {
     });
   }, [users, presence]);
 
+  const handleDm = async (id: string, type: 'user' | 'agent') => {
+    if (!token) return;
+    try {
+      const data = await createDm(id, type, token);
+      navigate(`/channels/${data.channel.id}`);
+    } catch {
+      // ignore for now
+    }
+  };
+
   return (
     <div className="dashboard">
-      <Card
-        title="Humans"
-        description="Everyone in the collective right now."
-      >
+      <Card title="Humans" description="Everyone in the collective right now.">
         <div className="card__stack">
           {humans.length ? (
             humans.map((human) => (
@@ -124,6 +190,9 @@ export default function Dashboard() {
                   </Badge>
                   <span className="chip__meta">· {human.lastSeen}</span>
                 </span>
+                <Button variant="ghost" onClick={() => handleDm(human.id, 'user')}>
+                  DM
+                </Button>
               </div>
             ))
           ) : (
@@ -132,15 +201,14 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      <Card
-        title="Channels"
-        description="Shared rooms for humans and agents."
-      >
+      <Card title="Channels" description="Shared rooms for humans and agents.">
         <div className="card__stack">
           {channels.length ? (
             channels.map((channel) => (
               <div key={channel.id} className="chip">
-                <span className="chip__name">#{channel.name}</span>
+                <span className="chip__name">
+                  {channel.visibility === 'invite-only' ? '🔒 ' : ''}#{channel.name}
+                </span>
                 <span className="chip__meta">{channel.description ?? '—'}</span>
               </div>
             ))
@@ -153,12 +221,31 @@ export default function Dashboard() {
       <Card title="Agents" description="Your active digital beings.">
         <div className="card__stack">
           {agents.length ? (
-            agents.map((agent) => (
-              <div key={agent.id} className="chip">
-                <span className="chip__name">{agent.name}</span>
-                <span className="chip__meta">{agent.id.slice(0, 8)}</span>
-              </div>
-            ))
+            agents.map((agent) => {
+              const dests = agentDestinations[agent.id] ?? [];
+              const identity = dests
+                .map((dest) => describeIdentity(dest))
+                .filter(Boolean)
+                .join(' · ');
+              const attentionState = attention[agent.id];
+
+              return (
+                <div key={agent.id} className="chip">
+                  <span className="chip__name">{agent.name}</span>
+                  <span className="chip__meta">
+                    {identity ? `ext: ${identity}` : agent.id.slice(0, 8)}
+                  </span>
+                  {attentionState ? (
+                    <Badge className={`badge--${attentionState.state}`}>
+                      {attentionState.state} ({attentionState.queueSize})
+                    </Badge>
+                  ) : null}
+                  <Button variant="ghost" onClick={() => handleDm(agent.id, 'agent')}>
+                    DM
+                  </Button>
+                </div>
+              );
+            })
           ) : (
             <p className="empty">No agents yet. Create one next.</p>
           )}

@@ -1,5 +1,7 @@
 # Runtime Dev Notes
 
+_Task source of truth: `agents/manager/tasks.md`_
+
 ## Scratchpad
 _Use this for working notes, questions, findings_
 
@@ -11,6 +13,11 @@ _Use this for working notes, questions, findings_
 - Ran agent start path smoke test using `CHATGPT_API` (OpenAI) and confirmed response output.
 - Implemented mention events + attention state: shared types, server routing, runtime queue, and UI attention updates.
 - Added manual test checklist and automated tests for OpenAI provider + collective connection mention/attention paths.
+- Task 13 in progress: added destination event contract types and documented queue semantics.
+- Task 13 done: added contract tests in shared package; `npm test` passes.
+- Task 14 done: added destination adapter interface + mock adapter and tests; `npm test` passes in agent-runtime.
+- Task 15 done (code + tests): Slack adapter added with ingest mapping, mention detection, and rate-limit retry logic; requires Socket Mode/Events API wiring + real tokens to validate against Slack.
+- Task 16 done (code + tests): Telegram adapter added with update ingest mapping, mention detection, and rate-limit retry logic; real bot token + webhook/long-poll still needed for live verification.
 
 ---
 

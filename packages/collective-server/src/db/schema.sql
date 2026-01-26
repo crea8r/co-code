@@ -63,6 +63,20 @@ CREATE TABLE agent_configs (
 );
 
 -- ============================================
+-- DESTINATION CONFIGS
+-- ============================================
+CREATE TABLE destination_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    destination VARCHAR(50) NOT NULL, -- slack | telegram | etc
+    policy JSONB NOT NULL DEFAULT '{}'::jsonb,
+    config JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE (agent_id, destination)
+);
+
+-- ============================================
 -- AGENT TOKENS
 -- (JWT tokens for agent authentication)
 -- ============================================
@@ -84,6 +98,7 @@ CREATE TABLE channels (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    visibility VARCHAR(20) NOT NULL DEFAULT 'public', -- public | invite-only
     created_by_id UUID NOT NULL,
     created_by_type VARCHAR(10) NOT NULL,  -- 'user' or 'agent'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

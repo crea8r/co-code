@@ -31,6 +31,15 @@ _Important discoveries during development_
 - End-to-end backend test blocked: Postgres refused connections on `localhost:55000` (ECONNREFUSED). Backend started but API calls failed until DB is up.
 - End-to-end test rerun with DB up: register/login OK, channel created, WS send/receive OK, REST messages list returned 1 message.
 - Task 8 (human presence + directory): added user status/last_seen fields, /users endpoint, and dashboard UI with live presence updates.
+- Task 9 (DMs): added /channels/dm endpoint and DM creation + sidebar listing + DM buttons on humans/agents.
+- Local ports standardized: backend default 3000, frontend 5173; web API/WS defaults updated accordingly.
+- Task 10 (channel access): added visibility field, invite-only enforcement, and UI selector + lock icon for private channels.
+- Task 11 (mentions UX): composer autocomplete for @mentions, highlighted mentions in messages, and Slack-like channel layout refinements.
+- Task 10 verification: invite-only channel join blocked with 403 on port 3000.
+- Task 19 (structured mentions): server resolves @name to IDs, stores mentionedIds in message metadata, and includes mentionedIds in WS message payloads.
+- Task 17 (destination policy UX): added destination_configs table + CRUD endpoints and Destinations UI page (Slack/Telegram policy + tokens).
+- Task 17 smoke test: /agents/:id/destinations upsert + list returned 1 entry on port 3000.
+- Task 18 (identity bridging + presence UX): dashboard shows external identity from destination configs and attention state badges via WS attention_change events.
 - Handoff summary (platform-dev):
   - Task 1/2 done and marked READY FOR REVIEW in `agents/platform-dev/tasks.md` and `agents/manager/tasks.md`.
   - DB: Docker Postgres on `localhost:55000`, db `cocode`, user `root`, password `localdevnotproduction`.

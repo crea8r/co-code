@@ -7,7 +7,9 @@ import { schemas } from '@co-code/shared';
 import * as authService from '../auth/service.js';
 import * as channelsService from '../channels/service.js';
 import * as creditsService from '../credits/service.js';
+import * as destinationsService from '../destinations/service.js';
 import type { EntityType } from '@co-code/shared';
+import { z } from 'zod';
 
 interface AuthenticatedRequest extends FastifyRequest {
   user: {
@@ -191,6 +193,60 @@ export function registerRoutes(app: FastifyInstance): void {
     }
   );
 
+  // List destination configs for agent (creator or agent)
+  app.get(
+    '/agents/:id/destinations',
+    { preHandler: [app.authenticate] },
+    async (request: FastifyRequest, reply) => {
+      const req = request as AuthenticatedRequest;
+      const { id } = request.params as { id: string };
+
+      if (req.user.sub !== id) {
+        const agent = await authService.getAgentById(id);
+        if (!agent || agent.creatorId !== req.user.sub) {
+          return reply.status(403).send({ error: 'Forbidden' });
+        }
+      }
+
+      const destinations = await destinationsService.listDestinationConfigs(id);
+      return { destinations };
+    }
+  );
+
+  // Upsert destination config
+  app.post(
+    '/agents/:id/destinations',
+    { preHandler: [app.authenticate] },
+    async (request: FastifyRequest, reply) => {
+      const req = request as AuthenticatedRequest;
+      const { id } = request.params as { id: string };
+
+      if (req.user.sub !== id) {
+        const agent = await authService.getAgentById(id);
+        if (!agent || agent.creatorId !== req.user.sub) {
+          return reply.status(403).send({ error: 'Forbidden' });
+        }
+      }
+
+      const body = z
+        .object({
+          destination: z.string().min(1),
+          policy: z.record(z.unknown()).default({}),
+          config: z.record(z.unknown()).default({}),
+        })
+        .parse(request.body);
+
+      const destination = await destinationsService.upsertDestinationConfig(
+        id,
+        body.destination,
+        body.policy,
+        body.config
+      );
+
+      return { destination };
+    }
+  );
+
   // ============================================
   // USER ROUTES
   // ============================================
@@ -226,7 +282,48 @@ export function registerRoutes(app: FastifyInstance): void {
         body.name,
         req.user.sub,
         req.user.type,
-        body.description
+        body.description,
+        body.visibility ?? 'public'
+      );
+
+      return { channel };
+    }
+  );
+
+  // Create or fetch DM channel
+  app.post(
+    '/channels/dm',
+    { preHandler: [app.authenticate] },
+    async (request: FastifyRequest, reply) => {
+      const req = request as AuthenticatedRequest;
+      if (req.user.type !== 'user') {
+        return reply.status(403).send({ error: 'Only users can start DMs' });
+      }
+
+      const body = z
+        .object({
+          targetId: z.string().uuid(),
+          targetType: z.enum(['user', 'agent']),
+        })
+        .parse(request.body);
+
+      if (body.targetType === 'user') {
+        const user = await authService.getUserById(body.targetId);
+        if (!user) {
+          return reply.status(404).send({ error: 'User not found' });
+        }
+      } else {
+        const agent = await authService.getAgentById(body.targetId);
+        if (!agent) {
+          return reply.status(404).send({ error: 'Agent not found' });
+        }
+      }
+
+      const channel = await channelsService.createOrGetDmChannel(
+        req.user.sub,
+        req.user.type,
+        body.targetId,
+        body.targetType
       );
 
       return { channel };
@@ -307,9 +404,21 @@ export function registerRoutes(app: FastifyInstance): void {
   app.post(
     '/channels/:id/join',
     { preHandler: [app.authenticate] },
-    async (request: FastifyRequest) => {
+    async (request: FastifyRequest, reply) => {
       const req = request as AuthenticatedRequest;
       const { id } = request.params as { id: string };
+
+      const inviteOnly = await channelsService.isChannelInviteOnly(id);
+      if (inviteOnly) {
+        const isMember = await channelsService.isChannelMember(
+          id,
+          req.user.sub,
+          req.user.type
+        );
+        if (!isMember) {
+          return reply.status(403).send({ error: 'Invite-only channel' });
+        }
+      }
 
       await channelsService.addChannelMember(id, req.user.sub, req.user.type);
       const channel = await channelsService.getChannelById(id);

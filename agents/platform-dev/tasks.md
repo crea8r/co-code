@@ -119,7 +119,7 @@
 
 ### Task 1: Database Setup
 
-**Status**: READY FOR REVIEW
+**Status**: DONE
 **Priority**: High (blocks Task 2)
 
 **What to do**:
@@ -146,7 +146,7 @@
 
 ```bash
 export DB_HOST=localhost
-export DB_PORT=5432
+export DB_PORT=55000
 export DB_NAME=cocode
 export DB_USER=postgres
 export DB_PASSWORD=<your-password>
@@ -162,7 +162,7 @@ export DB_PASSWORD=<your-password>
 
 ### Task 2: Test Server Endpoints
 
-**Status**: READY FOR REVIEW
+**Status**: DONE
 **Priority**: High
 
 **What to do**:

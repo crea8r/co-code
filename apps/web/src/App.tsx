@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import Channels from './pages/Channels';
 import ChannelView from './pages/Channel';
 import CreateAgent from './pages/CreateAgent';
+import Destinations from './pages/Destinations';
 import AppLayout from './components/AppLayout';
 import { useAuthStore } from './state/auth';
 
@@ -52,6 +53,7 @@ function AppRoutes() {
         <Route path="/channels" element={<Channels />} />
         <Route path="/channels/:id" element={<ChannelView />} />
         <Route path="/agents/new" element={<CreateAgent />} />
+        <Route path="/destinations" element={<Destinations />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

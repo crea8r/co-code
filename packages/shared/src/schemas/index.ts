@@ -155,6 +155,7 @@ export const CreateAgentRequestSchema = z.object({
 export const CreateChannelRequestSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
+  visibility: z.enum(['public', 'invite-only']).optional(),
 });
 
 export const TransferCreditsRequestSchema = z.object({

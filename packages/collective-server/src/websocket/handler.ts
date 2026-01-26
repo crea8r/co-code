@@ -213,6 +213,17 @@ async function handleJoinChannel(
     connection.entityType
   );
 
+  const inviteOnly = await channelsService.isChannelInviteOnly(channelId);
+  if (inviteOnly && !isMember) {
+    sendEvent(socket, {
+      type: 'error',
+      code: 'INVITE_ONLY',
+      message: 'Invite-only channel',
+      timestamp: Date.now(),
+    });
+    return;
+  }
+
   if (!isMember) {
     // Auto-join for now (can be changed to require invitation)
     await channelsService.addChannelMember(
@@ -281,12 +292,26 @@ async function handleSendMessage(
     return;
   }
 
+  const mentionNames = extractMentions(content.text || '');
+  const [userMentions, agentMentions] = await Promise.all([
+    authService.getUsersByNames(mentionNames),
+    authService.getAgentsByNames(mentionNames),
+  ]);
+  const mentionedIds = [...userMentions, ...agentMentions].map((item) => item.id);
+  const metadata = {
+    ...(content.metadata ?? {}),
+    ...(mentionedIds.length ? { mentionedIds } : {}),
+  };
+
   // Create message
   const message = await channelsService.createMessage(
     channelId,
     connection.entityId,
     connection.entityType,
-    content
+    {
+      ...content,
+      metadata,
+    }
   );
 
   // Broadcast to room
@@ -300,6 +325,7 @@ async function handleSendMessage(
         senderId: message.senderId,
         senderType: message.senderType,
         content: message.content,
+        mentionedIds: message.mentionedIds,
         createdAt: typeof message.createdAt === 'object'
           ? (message.createdAt as Date).getTime()
           : message.createdAt,
@@ -313,13 +339,11 @@ async function handleSendMessage(
     }
   }
 
-  const text = content.text || '';
-  if (!text) return;
+  if (!mentionedIds.length) return;
 
   const members = await channelsService.getChannelMembers(channelId);
   const mentionedAgents = members.filter(
-    (member) =>
-      member.memberType === 'agent' && text.includes(`@${member.memberId}`)
+    (member) => member.memberType === 'agent' && mentionedIds.includes(member.memberId)
   );
 
   for (const member of mentionedAgents) {
@@ -334,6 +358,7 @@ async function handleSendMessage(
         senderId: message.senderId,
         senderType: message.senderType,
         content: message.content,
+        mentionedIds: message.mentionedIds,
         createdAt: typeof message.createdAt === 'object'
           ? (message.createdAt as Date).getTime()
           : message.createdAt,
@@ -344,6 +369,12 @@ async function handleSendMessage(
       timestamp: Date.now(),
     });
   }
+}
+
+function extractMentions(text: string): string[] {
+  const matches = text.match(/@([\\w-]+)/g) ?? [];
+  const names = matches.map((match) => match.slice(1));
+  return Array.from(new Set(names));
 }
 
 /**

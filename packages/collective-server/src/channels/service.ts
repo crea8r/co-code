@@ -10,6 +10,7 @@ import type { Channel, Message, MessageContent, EntityType } from '@co-code/shar
 
 export interface ChannelRecord extends Channel {
   createdByType: EntityType;
+  visibility?: 'public' | 'invite-only';
 }
 
 export interface MessageRecord extends Message {
@@ -23,14 +24,15 @@ export async function createChannel(
   name: string,
   createdById: string,
   createdByType: EntityType,
-  description?: string
+  description?: string,
+  visibility: 'public' | 'invite-only' = 'public'
 ): Promise<ChannelRecord> {
   const [channel] = await query<ChannelRecord>(
-    `INSERT INTO channels (name, description, created_by_id, created_by_type)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO channels (name, description, visibility, created_by_id, created_by_type)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING id, name, description, created_by_id as "createdBy",
-               created_by_type as "createdByType", created_at as "createdAt"`,
-    [name, description || null, createdById, createdByType]
+               created_by_type as "createdByType", visibility, created_at as "createdAt"`,
+    [name, description || null, visibility, createdById, createdByType]
   );
 
   // Add creator as member
@@ -40,11 +42,54 @@ export async function createChannel(
 }
 
 /**
+ * Create or fetch a direct message channel between two members
+ */
+export async function createOrGetDmChannel(
+  requesterId: string,
+  requesterType: EntityType,
+  targetId: string,
+  targetType: EntityType
+): Promise<ChannelRecord> {
+  const members = [
+    { id: requesterId, type: requesterType },
+    { id: targetId, type: targetType },
+  ].sort((a, b) => `${a.type}:${a.id}`.localeCompare(`${b.type}:${b.id}`));
+
+  const name = `dm:${members[0].type}:${members[0].id}:${members[1].type}:${members[1].id}`;
+
+  const existing = await queryOne<ChannelRecord>(
+    `SELECT id, name, description, created_by_id as "createdBy",
+            created_by_type as "createdByType", created_at as "createdAt"
+     FROM channels WHERE name = $1`,
+    [name]
+  );
+
+  if (existing) {
+    await addChannelMember(existing.id, requesterId, requesterType);
+    await addChannelMember(existing.id, targetId, targetType);
+    return existing;
+  }
+
+  const [channel] = await query<ChannelRecord>(
+    `INSERT INTO channels (name, description, visibility, created_by_id, created_by_type)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, name, description, created_by_id as "createdBy",
+               created_by_type as "createdByType", visibility, created_at as "createdAt"`,
+    [name, 'Direct message', 'invite-only', requesterId, requesterType]
+  );
+
+  await addChannelMember(channel.id, requesterId, requesterType);
+  await addChannelMember(channel.id, targetId, targetType);
+
+  return channel;
+}
+
+/**
  * Get channel by ID
  */
 export async function getChannelById(id: string): Promise<ChannelRecord | null> {
   return queryOne<ChannelRecord>(
-    `SELECT id, name, description, created_by_id as "createdBy",
+    `SELECT id, name, description, visibility, created_by_id as "createdBy",
             created_by_type as "createdByType", created_at as "createdAt"
      FROM channels WHERE id = $1`,
     [id]
@@ -59,7 +104,7 @@ export async function getChannelsForMember(
   memberType: EntityType
 ): Promise<ChannelRecord[]> {
   return query<ChannelRecord>(
-    `SELECT c.id, c.name, c.description, c.created_by_id as "createdBy",
+    `SELECT c.id, c.name, c.description, c.visibility, c.created_by_id as "createdBy",
             c.created_by_type as "createdByType", c.created_at as "createdAt"
      FROM channels c
      JOIN channel_members cm ON c.id = cm.channel_id
@@ -83,6 +128,14 @@ export async function addChannelMember(
      ON CONFLICT (channel_id, member_id, member_type) DO NOTHING`,
     [channelId, memberId, memberType]
   );
+}
+
+export async function isChannelInviteOnly(channelId: string): Promise<boolean> {
+  const row = await queryOne<{ visibility: string }>(
+    `SELECT visibility FROM channels WHERE id = $1`,
+    [channelId]
+  );
+  return row?.visibility === 'invite-only';
 }
 
 /**
@@ -157,6 +210,7 @@ export async function createMessage(
 
   // Transform to Message format - message is a raw DB row
   const rawMessage = message as unknown as Record<string, unknown>;
+  const metadata = parseMetadata(rawMessage.content_metadata);
   return {
     id: rawMessage.id,
     channelId: rawMessage.channelId,
@@ -165,8 +219,9 @@ export async function createMessage(
     content: {
       text: rawMessage.content_text,
       emoji: rawMessage.content_emoji,
-      metadata: rawMessage.content_metadata,
+      metadata,
     },
+    mentionedIds: Array.isArray(metadata?.mentionedIds) ? metadata.mentionedIds : undefined,
     createdAt: rawMessage.createdAt,
     editedAt: rawMessage.editedAt,
   } as MessageRecord;
@@ -199,19 +254,36 @@ export async function getChannelMessages(
   const rows = await query<Record<string, unknown>>(sql, params);
 
   // Transform to Message format
-  return rows.map((row) => ({
-    id: row.id,
-    channelId: row.channelId,
-    senderId: row.senderId,
-    senderType: row.senderType,
-    content: {
-      text: row.content_text,
-      emoji: row.content_emoji,
-      metadata: row.content_metadata,
-    },
-    createdAt: row.createdAt,
-    editedAt: row.editedAt,
-  })) as MessageRecord[];
+  return rows.map((row) => {
+    const metadata = parseMetadata(row.content_metadata);
+    return {
+      id: row.id,
+      channelId: row.channelId,
+      senderId: row.senderId,
+      senderType: row.senderType,
+      content: {
+        text: row.content_text,
+        emoji: row.content_emoji,
+        metadata,
+      },
+      mentionedIds: Array.isArray(metadata?.mentionedIds) ? metadata.mentionedIds : undefined,
+      createdAt: row.createdAt,
+      editedAt: row.editedAt,
+    };
+  }) as MessageRecord[];
+}
+
+function parseMetadata(value: unknown): Record<string, unknown> | null {
+  if (!value) return null;
+  if (typeof value === 'object') return value as Record<string, unknown>;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 /**

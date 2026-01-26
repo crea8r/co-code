@@ -9,7 +9,7 @@
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "lint": "eslint src",
     "db:migrate": "node dist/db/migrate.js"
   },
@@ -19,6 +19,7 @@
     "@fastify/cors": "^10.0.0",
     "@fastify/websocket": "^11.0.0",
     "@fastify/jwt": "^9.0.0",
+    "dotenv": "^16.4.5",
     "pg": "^8.13.0",
     "zod": "^3.24.0",
     "uuid": "^11.0.0",

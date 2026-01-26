@@ -19,6 +19,8 @@ export interface Message {
   senderType: EntityType;
   /** Message content */
   content: MessageContent;
+  /** Resolved mention targets */
+  mentionedIds?: string[];
   /** When sent */
   createdAt: number;
   /** When edited (null if never) */
@@ -69,6 +71,8 @@ export interface Channel {
   name: string;
   /** Description */
   description?: string;
+  /** Visibility */
+  visibility?: 'public' | 'invite-only';
   /** Who created it */
   createdBy: string;
   /** Creator type */

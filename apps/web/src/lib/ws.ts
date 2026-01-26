@@ -1,4 +1,4 @@
-const DEFAULT_WS_URL = 'ws://localhost:3001/ws';
+const DEFAULT_WS_URL = 'ws://localhost:3000/ws';
 
 export const WS_URL =
   import.meta.env.VITE_WS_URL?.toString() ?? DEFAULT_WS_URL;

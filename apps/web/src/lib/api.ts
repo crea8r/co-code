@@ -1,6 +1,6 @@
 export type ApiError = { error: string };
 
-const DEFAULT_BASE_URL = 'http://localhost:3001';
+const DEFAULT_BASE_URL = 'http://localhost:3000';
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL?.toString() ?? DEFAULT_BASE_URL;
@@ -68,6 +68,7 @@ export type Channel = {
   id: string;
   name: string;
   description?: string | null;
+  visibility?: 'public' | 'invite-only';
   createdBy: string;
   createdByType: string;
   createdAt: string;
@@ -85,6 +86,7 @@ export type Message = {
   senderId: string;
   senderType: string;
   content: MessageContent;
+  mentionedIds?: string[];
   createdAt: number | string;
 };
 
@@ -98,3 +100,15 @@ export type CreditTransaction = {
   memo: string | null;
   createdAt: string;
 };
+
+export function createDm(
+  targetId: string,
+  targetType: 'user' | 'agent',
+  token: string
+): Promise<{ channel: Channel }> {
+  return apiPost<{ channel: Channel }>(
+    '/channels/dm',
+    { targetId, targetType },
+    token
+  );
+}

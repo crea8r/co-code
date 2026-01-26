@@ -9,3 +9,4 @@ export * from './memory.js';
 export * from './message.js';
 export * from './credits.js';
 export * from './events.js';
+export * from './destination.js';

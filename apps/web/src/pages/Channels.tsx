@@ -12,6 +12,7 @@ export default function Channels() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [visibility, setVisibility] = useState<'public' | 'invite-only'>('public');
   const [error, setError] = useState<string | null>(null);
 
   const loadChannels = async () => {
@@ -31,12 +32,13 @@ export default function Channels() {
     try {
       const data = await apiPost<{ channel: Channel }>(
         '/channels',
-        { name, description },
+        { name, description, visibility },
         token
       );
       setChannels((prev) => [data.channel, ...prev]);
       setName('');
       setDescription('');
+      setVisibility('public');
       setError(null);
     } catch (err) {
       setError((err as Error).message);
@@ -58,6 +60,19 @@ export default function Channels() {
             value={description}
             onChange={(event) => setDescription(event.target.value)}
           />
+          <label className="form__label">
+            Visibility
+            <select
+              className="form__input"
+              value={visibility}
+              onChange={(event) =>
+                setVisibility(event.target.value as 'public' | 'invite-only')
+              }
+            >
+              <option value="public">Public</option>
+              <option value="invite-only">Invite-only</option>
+            </select>
+          </label>
           {error ? <p className="form__error">{error}</p> : null}
           <Button variant="primary" type="submit">
             Create channel
@@ -74,7 +89,10 @@ export default function Channels() {
                 to={`/channels/${channel.id}`}
                 className="chip chip--link"
               >
-                <span className="chip__name">#{channel.name}</span>
+                <span className="chip__name">
+                  {channel.visibility === 'invite-only' ? '🔒 ' : ''}
+                  #{channel.name}
+                </span>
                 <span className="chip__meta">{channel.description ?? '—'}</span>
               </Link>
             ))

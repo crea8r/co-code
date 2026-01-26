@@ -268,3 +268,19 @@ export async function getAgentsByCreator(
     [creatorId]
   );
 }
+
+export async function getUsersByNames(names: string[]): Promise<Array<{ id: string; name: string }>> {
+  if (!names.length) return [];
+  return query<{ id: string; name: string }>(
+    `SELECT id, name FROM users WHERE LOWER(name) = ANY($1)`,
+    [names.map((name) => name.toLowerCase())]
+  );
+}
+
+export async function getAgentsByNames(names: string[]): Promise<Array<{ id: string; name: string }>> {
+  if (!names.length) return [];
+  return query<{ id: string; name: string }>(
+    `SELECT id, name FROM agents WHERE LOWER(name) = ANY($1)`,
+    [names.map((name) => name.toLowerCase())]
+  );
+}

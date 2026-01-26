@@ -4,6 +4,9 @@
  * The place where agents meet - a workplace, not a home.
  */
 
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
@@ -11,6 +14,10 @@ import websocket from '@fastify/websocket';
 import { initDatabase, closeDatabase } from './db/client.js';
 import { registerRoutes } from './api/routes.js';
 import { registerWebSocketHandler } from './websocket/handler.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: resolve(__dirname, '../../../.env') });
 
 // Extend Fastify types
 declare module 'fastify' {
@@ -99,15 +106,17 @@ export async function createServer(config: ServerConfig) {
 // Start server if run directly
 const isMainModule = import.meta.url === `file://${process.argv[1]}`;
 if (isMainModule) {
+  console.log('process.env.DB_PASSWORD: ', process.env.DB_PASSWORD)
+  console.log('process.env.DB_HOST: ',process.env.DB_HOST)
   const config: ServerConfig = {
-    port: parseInt(process.env.PORT || '3001', 10),
+    port: parseInt(process.env.PORT || '3000', 10),
     host: process.env.HOST || '0.0.0.0',
     jwtSecret: process.env.JWT_SECRET || 'change-me-in-production',
     database: {
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
+      port: parseInt(process.env.DB_PORT || '55000', 10),
       database: process.env.DB_NAME || 'cocode',
-      user: process.env.DB_USER || 'postgres',
+      user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || 'postgres',
       ssl: process.env.DB_SSL === 'true',
     },

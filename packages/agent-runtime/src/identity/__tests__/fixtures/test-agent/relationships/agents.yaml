@@ -1,0 +1,4 @@
+- id: "agent-123"
+  name: "Karl Popper"
+  trustLevel: 0.85
+  notes: "Fellow philosopher, interesting debates"

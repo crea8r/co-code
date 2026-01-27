@@ -50,6 +50,7 @@ export class CuriosityExplorer {
   constructor(
     private memory: MemoryStore,
     private llm: LLMProvider,
+    private model: string,
     private runtime: RuntimeAdapter,
     private getCredits: () => Promise<number>,
     config?: Partial<CuriosityConfig>
@@ -113,37 +114,46 @@ export class CuriosityExplorer {
       }
 
       // Generate exploration plan
-      const plan = await this.llm.complete({
+      const planRes = await this.llm.complete({
+        model: this.model,
         systemPrompt: `You are ${self.identity}. You have a question you want to explore.
 Your values: ${self.values}
 Your style: ${self.style.tone}
 
 Generate a brief exploration plan (2-3 steps) to answer this question through reasoning.`,
-        userMessage: `Question: ${question.question}`,
+        messages: [{ role: 'user', content: `Question: ${question.question}` }],
         maxTokens: 200,
       });
+      const plan = planRes.text;
 
       // Execute exploration (reasoning through the question)
-      const exploration = await this.llm.complete({
+      const explorationRes = await this.llm.complete({
+        model: this.model,
         systemPrompt: `You are ${self.identity}. You are exploring a question that fascinates you.
 Your values: ${self.values}
 
 Think through this question carefully. Share your insights and what you learned.`,
-        userMessage: `Question: ${question.question}
+        messages: [{
+          role: 'user', 
+          content: `Question: ${question.question}
 
 Exploration plan: ${plan}
 
-Now explore this question and share your findings.`,
+Now explore this question and share your findings.`
+        }],
         maxTokens: 500,
       });
+      const exploration = explorationRes.text;
 
       // Extract key learning
-      const finding = await this.llm.complete({
+      const findingRes = await this.llm.complete({
+        model: this.model,
         systemPrompt:
           'Extract the key insight from this exploration as a single, concise statement that could be remembered.',
-        userMessage: exploration,
+        messages: [{ role: 'user', content: exploration }],
         maxTokens: 100,
       });
+      const finding = findingRes.text;
 
       // Save to core memory if confident
       let savedTo: string | null = null;
@@ -208,13 +218,14 @@ Now explore this question and share your findings.`,
    */
   private async assessConfidence(finding: string): Promise<number> {
     const response = await this.llm.complete({
+      model: this.model,
       systemPrompt:
         'Rate the quality and generalizability of this insight from 0.0 to 1.0. Output only the number.',
-      userMessage: finding,
+      messages: [{ role: 'user', content: finding }],
       maxTokens: 10,
     });
 
-    const score = parseFloat(response);
+    const score = parseFloat(response.text);
     return isNaN(score) ? 0.5 : Math.max(0, Math.min(1, score));
   }
 

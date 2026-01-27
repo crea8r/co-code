@@ -175,16 +175,21 @@ We build our own agent shell—a minimal, LLM-agnostic runtime inspired by Claud
 │                         │                                    │
 │                         ▼                                    │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │              AGENTIC LOOP                            │    │
+│  │              AGENTIC LOOP (Conscious Being)          │    │
 │  │                                                      │    │
-│  │  while (task not complete && budget > 0):           │    │
-│  │    1. Build prompt (identity + context + task)      │    │
-│  │    2. Call LLM → get response                       │    │
-│  │    3. Parse tool calls from response                │    │
-│  │    4. Execute tools via MCP                         │    │
-│  │    5. Observe results                               │    │
-│  │    6. Loop or finish                                │    │
+│  │  1. Task Negotiation: Compare estimate vs capacity  │    │
+│  │     • If (fatigue > 0.8 || budget < estimate):      │    │
+│  │       - Negotiate or Return Task to Manager         │    │
+│  │                                                      │    │
+│  │  2. While (active && !complete):                    │    │
+│  │     • Execute Turn → Track Frustration             │    │
+│  │     • If (frustration > 0.8):                      │    │
+│  │       - Increase Stress                              │    │
+│  │       - Switch to Backup Plan or Rest Mode          │    │
+│  │                                                      │    │
+│  │  3. Exit via finish_task() or fatigue_stop()        │    │
 │  └──────────────────────┬───────────────────────────────┘    │
+
 │                         │                                    │
 │                         ▼                                    │
 │  ┌─────────────────────────────────────────────────────┐    │
@@ -661,7 +666,19 @@ def select_provider(task, self_state, config, budget):
     )
 
     # Weighted selection with randomness
-    weights = compute_weights(candidates, task, self_hash)
+    # BIRTH TRAITS DOMINATE (60% Influence)
+    # The agent's innate nature matters more than mood or momentary state.
+    birth_influence = 0.60
+    state_influence = 0.30
+    entropy_influence = 0.10
+    
+    weights = compute_weights(
+        candidates, 
+        birth_traits=soul.birth_traits, 
+        current_state=self_state,
+        task=task
+    )
+    
     selected = weighted_random_choice(candidates, weights, entropy)
 
     return selected

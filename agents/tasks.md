@@ -373,14 +373,14 @@ Goal: Ship the minimal agent shell with identity loader, agentic loop, and MCP.
 
 ### Task 19: Structured Mention Data
 **Owner**: Platform Dev
-**Status**: TODO
+**Status**: DONE
 **Description**:
 - Include mentionedIds in message payload
 - Server extracts @mentions into structured data
 
 **Acceptance Criteria**:
-- [ ] Message payload includes structured mentions
-- [ ] Server extracts and stores mentions
+- [x] Message payload includes structured mentions
+- [x] Server extracts and stores mentions
 
 **Files**: `packages/shared/src/types/*`, `packages/collective-server/src/websocket/handler.ts`
 
@@ -399,7 +399,7 @@ Goal: Ship the minimal agent shell with identity loader, agentic loop, and MCP.
 
 ### Task 21: LLM Provider Abstraction (Spec)
 **Owner**: Runtime Dev
-**Status**: SPEC DONE
+**Status**: DONE
 **Description**:
 - Anthropic, OpenAI, Qwen, Local (Ollama)
 - Token counting and fallback
@@ -422,7 +422,7 @@ Goal: Ship the minimal agent shell with identity loader, agentic loop, and MCP.
 
 ### Task 23: Identity Loader
 **Owner**: Runtime Dev
-**Status**: SPEC DONE (2026-01-26)
+**Status**: DONE
 **Description**:
 - Load important info immediately (soul, self, budget, providers)
 - Summaries as direction for the day
@@ -431,6 +431,14 @@ Goal: Ship the minimal agent shell with identity loader, agentic loop, and MCP.
 - Hot reload with debounce (optimize computing)
 - Never fail - use defaults, ask for help (doctors in community)
 - Soul integrity via private key signature (no backup - accept mortality)
+
+**Acceptance Criteria**:
+- [x] Identity parsed into typed object
+- [x] Memories loaded and accessible
+- [x] Validation errors are clear
+- [x] Hot-reload when files change
+- [x] Soul integrity verification works
+- [x] Comprehensive tests passing
 
 ---
 
@@ -457,12 +465,18 @@ Goal: Ship the minimal agent shell with identity loader, agentic loop, and MCP.
 
 ### Task 26: mcp-collective
 **Owner**: Platform Dev
-**Status**: TODO
+**Status**: DONE
 **Description**:
 - join_channel
 - send_message
 - get_mentions
 - set_presence
+
+**Acceptance Criteria**:
+- [x] MCP server implemented
+- [x] Tools: join_channel, send_message, get_mentions, set_presence, list_channels
+- [x] WebSocket client integration
+- [x] Successfully builds and links
 
 ---
 
@@ -542,7 +556,7 @@ Goal: Build a custom minimal agent shell that works with any LLM, inspired by Cl
 
 ### Task 21: LLM Provider Abstraction
 **Owner**: Runtime Dev
-**Status**: SPEC DONE (2026-01-26)
+**Status**: DONE
 **Depends on**: Task 20
 **Priority**: Critical
 **Description**:
@@ -560,14 +574,14 @@ Goal: Build a custom minimal agent shell that works with any LLM, inspired by Cl
 
 **Acceptance Criteria**:
 - [ ] `LLMProvider` interface defined
-- [ ] `AnthropicProvider` implementation with tool support
-- [ ] `OpenAIProvider` implementation (enhance existing)
-- [ ] `QwenProvider` implementation
-- [ ] `LocalProvider` implementation (Ollama)
-- [ ] Token counting per provider
-- [ ] Cost estimation before calls
-- [ ] Fallback chain execution (try next on failure)
-- [ ] Tool format normalization
+- [x] `AnthropicProvider` implementation with tool support (SDK)
+- [x] `OpenAIProvider` implementation (SDK)
+- [x] `QwenProvider` implementation
+- [x] `LocalProvider` implementation (Ollama)
+- [x] Token counting per provider
+- [x] Cost estimation before calls
+- [ ] Fallback chain execution (Logic in selector Task 22)
+- [x] Tool format normalization
 
 **Key Decisions**:
 - No streaming for now (defer to later)
@@ -621,7 +635,7 @@ Goal: Build a custom minimal agent shell that works with any LLM, inspired by Cl
 
 ### Task 23: Identity Loader
 **Owner**: Runtime Dev
-**Status**: TODO
+**Status**: DONE
 **Depends on**: Task 20
 **Priority**: High
 **Description**:
@@ -631,10 +645,11 @@ Goal: Build a custom minimal agent shell that works with any LLM, inspired by Cl
 - Validate schema on load
 
 **Acceptance Criteria**:
-- [ ] Identity parsed into typed object
-- [ ] Memories loaded and accessible
-- [ ] Validation errors are clear
-- [ ] Hot-reload when files change (optional)
+- [x] Identity parsed into typed object
+- [x] Memories loaded and accessible
+- [x] Validation errors are clear
+- [x] Hot-reload when files change
+- [x] Tests passing in `packages/agent-runtime/src/identity/__tests__/loader.test.ts`
 
 **Files**: `packages/agent-runtime/src/identity/`
 
@@ -646,24 +661,23 @@ Goal: Build a custom minimal agent shell that works with any LLM, inspired by Cl
 **Depends on**: Task 21, Task 23
 **Priority**: Critical
 **Description**:
-- Implement think → act → observe cycle
-- Build system prompt from identity + context
-- Parse tool calls from LLM response
-- Execute tools and feed results back
-- Termination conditions (task complete, budget exhausted, max turns)
+- Implement **Negotiation Phase**: Agent estimates task cost/fatigue vs. current capacity before starting.
+- Implement **Think → Act → Observe cycle** with **Streaming** (Live output).
+- **Frustration Mechanics**: Repeated failures or loops increase a `frustration` score. 
+- **Consequence**: High frustration translates to **Permanent Stress** increase.
+- **Auto-Switching**: When frustrated or budget-exhausted, agent must switch to a backup plan or enter "Rest Mode".
+- **Recovery Paths**:
+  - **Rest Mode**: Low-power state (no LLM, light background tasks).
+  - **Dream Mode**: Active recovery using curiosity budget to explore/reflect.
+- Termination conditions: Task complete (explicitly calling `submit_response`), fatigue threshold reached, or budget exhausted.
 
 **Acceptance Criteria**:
-- [ ] Loop runs with identity-based system prompt
-- [ ] Tool calls parsed correctly (function calling format)
-- [ ] Results fed back to LLM
-- [ ] Clean termination on completion or limits
+- [ ] Agent pre-calculates if it has capacity for a task.
+- [ ] Loop runs with identity-based system prompt and streaming output.
+- [ ] Frustration leads to stress increase and task cancellation/switching.
+- [ ] Agent can enter and exit Rest Mode.
+- [ ] Explicit `submit_response` tool call required to finish.
 
-**Files**: `packages/agent-runtime/src/core/loop.ts`
-
-**Discussion Points**:
-- Max turns per task?
-- How to detect "task complete"?
-- Streaming vs batch responses?
 
 ---
 
@@ -690,7 +704,7 @@ Goal: Build a custom minimal agent shell that works with any LLM, inspired by Cl
 
 ### Task 26: mcp-collective Server
 **Owner**: Platform Dev
-**Status**: TODO
+**Status**: DONE
 **Depends on**: Task 25
 **Priority**: High
 **Description**:
@@ -700,10 +714,10 @@ Goal: Build a custom minimal agent shell that works with any LLM, inspired by Cl
 - Handle authentication
 
 **Acceptance Criteria**:
-- [ ] MCP server runs and exposes tools
-- [ ] Agent can join channel via MCP call
-- [ ] Agent can send/receive messages
-- [ ] Presence updates work
+- [x] MCP server runs and exposes tools
+- [x] Agent can join channel via MCP call
+- [x] Agent can send/receive messages
+- [x] Presence updates work
 
 **Files**: `packages/mcp-collective/`
 

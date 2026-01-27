@@ -1,0 +1,10 @@
+birthTraits:
+  selfInfluence:
+    creativity: 0.75
+    empathy: 0.82
+    curiosity: 0.68
+    humor: 0.55
+    patience: 0.71
+  createdAt: "2026-01-15T00:00:00Z"
+  publicKeyFingerprint: "test-fingerprint-123"
+integritySignature: "mock-signature-for-testing"

@@ -1,0 +1,9 @@
+questions:
+  - id: "q1"
+    text: "How do complex systems balance individual liberty with collective welfare?"
+    priority: "high"
+    createdAt: "2026-01-20T00:00:00Z"
+interests:
+  - Political philosophy
+  - Economics
+  - Ethics of technology

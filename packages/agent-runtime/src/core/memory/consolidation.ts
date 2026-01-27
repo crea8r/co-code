@@ -51,6 +51,7 @@ export class MemoryConsolidator {
   constructor(
     private memory: MemoryStore,
     private llm: LLMProvider,
+    private model: string,
     config?: Partial<ConsolidationConfig>
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -121,12 +122,14 @@ export class MemoryConsolidator {
       if (entry.content.length < 500) continue;
 
       // Summarize using LLM
-      const summary = await this.llm.complete({
+      const response = await this.llm.complete({
+        model: this.model,
         systemPrompt:
           'You are a memory summarizer. Compress the following memory into a concise form while preserving key insights. Output only the summary, nothing else.',
-        userMessage: entry.content,
+        messages: [{ role: 'user', content: entry.content }],
         maxTokens: 200,
       });
+      const summary = response.text;
 
       if (summary.length < entry.content.length * 0.7) {
         entry.content = summary;
@@ -200,13 +203,14 @@ export class MemoryConsolidator {
 
     // Use LLM for semantic similarity
     const response = await this.llm.complete({
+      model: this.model,
       systemPrompt:
         'Compare these two memories and output a similarity score from 0.0 to 1.0. Output only the number.',
-      userMessage: `Memory A: ${a.content}\n\nMemory B: ${b.content}`,
+      messages: [{ role: 'user', content: `Memory A: ${a.content}\n\nMemory B: ${b.content}` }],
       maxTokens: 10,
     });
 
-    const score = parseFloat(response);
+    const score = parseFloat(response.text);
     return isNaN(score) ? tagOverlap : (tagOverlap + score) / 2;
   }
 
@@ -217,13 +221,14 @@ export class MemoryConsolidator {
     a: MemoryEntry,
     b: MemoryEntry
   ): Promise<string> {
-    const merged = await this.llm.complete({
+    const response = await this.llm.complete({
+      model: this.model,
       systemPrompt:
         'Merge these two related memories into a single, concise memory that captures the essence of both. Output only the merged memory.',
-      userMessage: `Memory A: ${a.content}\n\nMemory B: ${b.content}`,
+      messages: [{ role: 'user', content: `Memory A: ${a.content}\n\nMemory B: ${b.content}` }],
       maxTokens: 300,
     });
-    return merged;
+    return response.text;
   }
 
   /**

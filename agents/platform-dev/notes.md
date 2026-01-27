@@ -3,21 +3,6 @@
 ## Scratchpad
 _Use this for working notes, questions, findings_
 
----
-
-## Questions for Manager
-_List questions that need clarification_
-
----
-
-## Blockers
-_Issues preventing progress_
-
----
-
-## Findings
-_Important discoveries during development_
-
 - Postgres is running via local Docker on `localhost:55000`.
 - Database `cocode` created and schema applied from `packages/collective-server/src/db/schema.sql`.
 - Connection info: `postgresql://root:localdevnotproduction@localhost:55000/cocode`
@@ -40,9 +25,24 @@ _Important discoveries during development_
 - Task 17 (destination policy UX): added destination_configs table + CRUD endpoints and Destinations UI page (Slack/Telegram policy + tokens).
 - Task 17 smoke test: /agents/:id/destinations upsert + list returned 1 entry on port 3000.
 - Task 18 (identity bridging + presence UX): dashboard shows external identity from destination configs and attention state badges via WS attention_change events.
-- Handoff summary (platform-dev):
-  - Task 1/2 done and marked READY FOR REVIEW in `agents/platform-dev/tasks.md` and `agents/manager/tasks.md`.
-  - DB: Docker Postgres on `localhost:55000`, db `cocode`, user `root`, password `localdevnotproduction`.
-  - Schema applied from `packages/collective-server/src/db/schema.sql`; tables verified.
-  - API tests passed (register/login/channel/balance) and WS `/ws` connection OK.
-  - Web app shell scaffolded under `apps/web/` (Vite + React) and dev server verified.
+- 2026-01-28: Task 26 DONE - mcp-collective Server
+  - Created new package: `packages/mcp-collective/`
+  - Implemented MCP server with 5 tools: join_channel, send_message, get_mentions, set_presence, list_channels.
+  - Implemented WebSocket client to collective-server in `src/client/collective.ts`.
+  - Tools mapping: join_channel -> `join_channel` WS, send_message -> `send_message` WS, etc.
+  - Successfully built and linked. ✅
+
+---
+
+## Questions for Manager
+_List questions that need clarification_
+
+---
+
+## Blockers
+_Issues preventing progress_
+
+---
+
+## Findings
+_Important discoveries during development_

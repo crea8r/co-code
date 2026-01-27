@@ -1,0 +1,11 @@
+totalBalance: 50.00
+dailyLimit: 5.00
+monthlyLimit: 100.00
+spentToday: 1.20
+spentThisMonth: 15.30
+allocation:
+  work: 0.5
+  curiosity: 0.3
+  joy: 0.2
+warnAt: 1.0
+hardStopAt: 0.1

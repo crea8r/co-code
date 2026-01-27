@@ -15,6 +15,10 @@ import { CuriosityExplorer } from './curiosity/explorer.js';
 import type { LLMProvider, LLMConfig } from './llm/provider.js';
 import { AnthropicProvider } from './llm/anthropic.js';
 import { OpenAIProvider } from './llm/openai.js';
+import { ModelSelector } from './llm/selector.js';
+import { ModelSelector } from './llm/selector.js';
+import { SleepManager } from './sleep.js';
+import type { Tool } from './llm/provider.js';
 import {
   generateKeyPair,
   sign,
@@ -58,6 +62,8 @@ export class Agent {
   private memory: MemoryStore;
   private consolidator: MemoryConsolidator | null = null;
   private curiosity: CuriosityExplorer | null = null;
+  private sleepManager: SleepManager | null = null;
+  private selector: ModelSelector | null = null;
   private llm: LLMProvider;
   private state: AgentState = {
     status: 'offline',
@@ -86,9 +92,9 @@ export class Agent {
 
     // Create LLM provider
     if (config.llm.provider === 'anthropic') {
-      this.llm = new AnthropicProvider(config.llm);
+      this.llm = new AnthropicProvider(config.llm.apiKey);
     } else if (config.llm.provider === 'openai') {
-      this.llm = new OpenAIProvider(config.llm);
+      this.llm = new OpenAIProvider(config.llm.apiKey);
     } else {
       throw new Error(`Unsupported LLM provider: ${config.llm.provider}`);
     }
@@ -112,18 +118,27 @@ export class Agent {
     }
 
     // Initialize consolidator
-    this.consolidator = new MemoryConsolidator(this.memory, this.llm);
+    this.consolidator = new MemoryConsolidator(this.memory, this.llm, this.config.llm.model);
 
     // Initialize curiosity
     this.curiosity = new CuriosityExplorer(
       this.memory,
       this.llm,
+      this.config.llm.model,
       this.runtime,
       () => Promise.resolve(this.state.credits),
       {
         checkIntervalMs: this.config.curiosityCheckIntervalMs || 60000,
       }
     );
+
+    // Initialize selector
+    const budget = await this.memory.getFinancialBudget();
+    this.selector = new ModelSelector(this.config.llm, budget);
+
+    // Initialize sleep manager
+    const vitals = await this.memory.getVitals();
+    this.sleepManager = new SleepManager(this.consolidator, vitals);
 
     // Schedule consolidation (sleep)
     const consolidationInterval =
@@ -248,22 +263,63 @@ export class Agent {
     // Record activity (resets idle timer)
     this.curiosity?.recordActivity();
 
-    const self = await this.memory.getSelf();
-    if (!self) {
-      return "I'm not fully initialized yet.";
+    // 0. Check for sleep
+    if (this.sleepManager?.shouldSleep()) {
+      await this.sleepManager.sleep();
+      return "I'm feeling very tired. I need to rest for a bit to consolidate my memories. I'll be back online soon.";
     }
 
-    // Build context for response
-    const systemPrompt = this.buildSystemPrompt(self);
+    // 1. Load context
+    const self = await this.memory.getSelf();
+    if (!self) throw new Error('Self not initialized');
 
-    // Generate response
-    const response = await this.llm.complete({
-      systemPrompt,
-      userMessage: content.text || '',
-      maxTokens: 1024,
-    });
+    // 2. Select Model
+    // TODO: Analyze complexity dynamically. For now, assume medium.
+    const selection = this.selector?.selectModel('medium');
+    const model = selection?.primary || this.config.llm.model;
+    
+    // 3. Construct System Prompt
+    const systemPrompt = `You are ${self.identity.name}. ${self.identity.description || ''}
+    
+Values:
+${self.values.principles.map((p) => `- ${p}`).join('\n')}
 
-    return response;
+Style:
+Tone: ${self.style.tone}
+Verbosity: ${self.style.verbosity || 'balanced'}
+
+You are interacting on the platform. Be helpful but true to your character.`;
+
+    // 4. Agentic Loop (Think -> Act -> Observe)
+    // For this MVP, we'll do a simple single turn with tool support capability
+    
+    try {
+      const response = await this.llm.complete({
+        model,
+        systemPrompt,
+        messages: [{ role: 'user', content: content.text || '' }],
+        maxTokens: 1024,
+        // tools: [] // TODO: Add tools from MCP
+      });
+
+      // Update cost/fatigue
+      if (response.cost) {
+        // Approximate energy drain: 1 token = 0.01 energy units? 
+        // Or just map cost directly for now
+        this.sleepManager?.consumeEnergy((response.usage.inputTokens + response.usage.outputTokens) / 10);
+        
+        // Update budget
+        const currentBudget = await this.memory.getFinancialBudget();
+        currentBudget.spentToday += response.cost;
+        currentBudget.spentThisMonth += response.cost;
+        await this.memory.saveFinancialBudget(currentBudget);
+      }
+
+      return response.text;
+    } catch (error) {
+      this.runtime.log('error', 'LLM completion failed', error);
+      return "I'm having trouble thinking clearly right now.";
+    }
   }
 
   /**

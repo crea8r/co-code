@@ -7,6 +7,7 @@ Specialist in the agent-runtime package. Responsible for:
 - Writing tests for core functionality
 - Debugging memory, identity, and LLM integration
 - Making the runtime robust and reliable
+- Test tasks and make sure they work as expected without asking
 
 ## Technical Focus
 - `packages/agent-runtime/` - the soul of an agent

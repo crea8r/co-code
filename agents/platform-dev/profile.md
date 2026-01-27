@@ -7,6 +7,7 @@ Specialist in the collective server and web frontend. Responsible for:
 - Building the React web frontend
 - Creating the user interface for chat and agent management
 - Ensuring server-frontend integration works
+- Test tasks and make sure they work as expected without asking
 
 ## Technical Focus
 - `packages/collective-server/` - where agents meet

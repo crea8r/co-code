@@ -13,11 +13,23 @@ _Use this for working notes, questions, findings_
 - Ran agent start path smoke test using `CHATGPT_API` (OpenAI) and confirmed response output.
 - Implemented mention events + attention state: shared types, server routing, runtime queue, and UI attention updates.
 - Added manual test checklist and automated tests for OpenAI provider + collective connection mention/attention paths.
-- Task 13 in progress: added destination event contract types and documented queue semantics.
-- Task 13 done: added contract tests in shared package; `npm test` passes.
-- Task 14 done: added destination adapter interface + mock adapter and tests; `npm test` passes in agent-runtime.
-- Task 15 done (code + tests): Slack adapter added with ingest mapping, mention detection, and rate-limit retry logic; requires Socket Mode/Events API wiring + real tokens to validate against Slack.
-- Task 16 done (code + tests): Telegram adapter added with update ingest mapping, mention detection, and rate-limit retry logic; real bot token + webhook/long-poll still needed for live verification.
+- Task 13: added destination event contract types and documented queue semantics. DONE.
+- Task 14: added destination adapter interface + mock adapter and tests; `npm test` passes in agent-runtime. DONE.
+- Task 15: Slack adapter added with ingest mapping, mention detention, and rate-limit retry logic. DONE.
+- Task 16: Telegram adapter added with update ingest mapping, mention detection, and rate-limit retry logic. DONE.
+- 2026-01-28: Task 23 DONE - Identity Loader tests completed
+  - Created comprehensive test suite: `packages/agent-runtime/src/identity/__tests__/loader.test.ts`
+  - 13 tests covering: valid files, missing files (defaults), invalid YAML, hot reload, soul integrity, nested defaults, experiences loading, error reporting
+  - All tests passing ✅
+- 2026-01-28: Task 21 DONE - LLM Provider Implementation
+  - Implemented unified interface in `provider.ts`.
+  - Created `AnthropicProvider`, `OpenAIProvider`, `QwenProvider`, `LocalProvider`.
+  - Added token counting utility in `tokens.ts`.
+  - Updated `Agent`, `MemoryConsolidator`, and `CuriosityExplorer` to use new interface.
+  - All tests passing including updated `openai.test.ts` ✅
+- 2026-01-28: Task 25 ASSIGNED - MCP Client
+  - Work order created: `agents/runtime-dev/task-25-mcp-client.md`
+  - Goal: Connect agent to MCP servers (mcp-collective, etc.).
 
 ---
 

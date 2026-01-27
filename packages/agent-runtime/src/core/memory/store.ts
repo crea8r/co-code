@@ -9,13 +9,14 @@ import { v4 as uuidv4 } from 'uuid';
 import type { StorageAdapter } from '../../adapters/storage/interface.js';
 import { STORAGE_KEYS } from '../../adapters/storage/interface.js';
 import type {
-  AgentSelf,
   CoreMemory,
   ProjectMemory,
   MemoryEntry,
   MemoryBudget,
 } from '@co-code/shared';
 import { DEFAULT_MEMORY_BUDGET } from '@co-code/shared';
+import type { Vitals, Budget, Self } from '../../identity/types.js';
+import { DEFAULT_VITALS, DEFAULT_BUDGET } from '../../identity/defaults.js';
 
 export class MemoryStore {
   private budget: MemoryBudget;
@@ -31,13 +32,13 @@ export class MemoryStore {
   // Self Memory (The Ego)
   // ============================================
 
-  async getSelf(): Promise<AgentSelf | null> {
+  async getSelf(): Promise<Self | null> {
     const data = await this.storage.read(STORAGE_KEYS.SELF);
     if (!data) return null;
-    return JSON.parse(data) as AgentSelf;
+    return JSON.parse(data) as Self;
   }
 
-  async saveSelf(self: AgentSelf): Promise<void> {
+  async saveSelf(self: Self): Promise<void> {
     const data = JSON.stringify(self, null, 2);
     if (data.length > this.budget.selfMaxBytes) {
       throw new Error(
@@ -47,7 +48,7 @@ export class MemoryStore {
     await this.storage.write(STORAGE_KEYS.SELF, data);
   }
 
-  async updateSelf(updates: Partial<AgentSelf>): Promise<AgentSelf> {
+  async updateSelf(updates: Partial<Self>): Promise<Self> {
     const current = await this.getSelf();
     if (!current) {
       throw new Error('Self memory not initialized');
@@ -220,5 +221,29 @@ export class MemoryStore {
       usage.self > this.budget.selfMaxBytes ||
       usage.core > this.budget.coreMaxBytes
     );
+  }
+
+  // ============================================
+  // Vitals & Financial Budget
+  // ============================================
+
+  async getVitals(): Promise<Vitals> {
+    const data = await this.storage.read(STORAGE_KEYS.VITALS);
+    if (!data) return { ...DEFAULT_VITALS };
+    return JSON.parse(data) as Vitals;
+  }
+
+  async saveVitals(vitals: Vitals): Promise<void> {
+    await this.storage.write(STORAGE_KEYS.VITALS, JSON.stringify(vitals, null, 2));
+  }
+
+  async getFinancialBudget(): Promise<Budget> {
+    const data = await this.storage.read(STORAGE_KEYS.BUDGET);
+    if (!data) return { ...DEFAULT_BUDGET };
+    return JSON.parse(data) as Budget;
+  }
+
+  async saveFinancialBudget(budget: Budget): Promise<void> {
+    await this.storage.write(STORAGE_KEYS.BUDGET, JSON.stringify(budget, null, 2));
   }
 }

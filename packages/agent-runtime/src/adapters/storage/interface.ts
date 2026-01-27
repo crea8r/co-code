@@ -63,4 +63,8 @@ export const STORAGE_KEYS = {
   PROJECT_PREFIX: 'memory/projects/',
   /** Relationships memory */
   RELATIONSHIPS: 'memory/relationships',
+  /** Vitals (health, energy, stress) */
+  VITALS: 'vitals',
+  /** Financial Budget */
+  BUDGET: 'budget',
 } as const;

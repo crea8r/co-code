@@ -16,19 +16,24 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@co-code/shared": "*",
+    "@modelcontextprotocol/sdk": "^1.25.3",
     "@noble/ed25519": "^2.2.0",
     "@noble/hashes": "^1.7.0",
     "isomorphic-ws": "^5.0.0",
+    "js-tiktoken": "^1.0.21",
+    "openai": "^6.16.0",
+    "uuid": "^11.0.0",
     "ws": "^8.18.0",
-    "zod": "^3.24.0",
-    "uuid": "^11.0.0"
+    "yaml": "^2.8.2",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "vitest": "^2.1.0",
     "@types/node": "^22.0.0",
+    "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.0",
-    "@types/uuid": "^10.0.0"
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
   }
 }

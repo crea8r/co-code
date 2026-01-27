@@ -1,0 +1,12 @@
+waking:
+  capacity: 100000
+  current: 45000
+  thresholdWarn: 0.7
+  thresholdCritical: 0.9
+  lastSleep: "2026-01-27T23:00:00Z"
+  lastWake: "2026-01-28T08:00:00Z"
+emotional:
+  stress: 0.35
+  mood: 0.72
+  joy: 0.65
+  curiositySatisfaction: 0.58

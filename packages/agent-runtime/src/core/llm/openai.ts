@@ -1,121 +1,157 @@
 /**
- * OpenAI LLM Provider (Responses API)
+ * OpenAI LLM Provider
  *
- * Uses fetch for HTTP calls - works everywhere.
+ * Implementation of Task 21 for OpenAI models.
+ * Uses official OpenAI SDK and Chat Completions API.
  */
 
-import type {
+import OpenAI from 'openai';
+import {
   LLMProvider,
-  LLMConfig,
+  Model,
   CompletionRequest,
   CompletionResponse,
+  CostEstimate,
+  Tool,
+  ToolCall,
 } from './provider.js';
 
-interface OpenAIOutputText {
-  type: 'output_text' | string;
-  text?: string;
-}
-
-interface OpenAIMessageItem {
-  type: 'message' | string;
-  role?: string;
-  content?: OpenAIOutputText[];
-}
-
-interface OpenAIUsage {
-  input_tokens?: number;
-  output_tokens?: number;
-}
-
-interface OpenAIResponse {
-  model?: string;
-  output?: OpenAIMessageItem[];
-  usage?: OpenAIUsage;
-}
-
 export class OpenAIProvider implements LLMProvider {
-  readonly name = 'openai';
-  private baseUrl: string;
-  private model: string;
-  private apiKey: string;
+  readonly id = 'openai';
+  private client: OpenAI;
 
-  constructor(config: LLMConfig) {
-    if (config.provider !== 'openai') {
-      throw new Error('Invalid provider for OpenAIProvider');
-    }
-    this.apiKey = config.apiKey;
-    this.model = config.model || 'gpt-5';
-    this.baseUrl = config.baseUrl || 'https://api.openai.com';
+  private static MODELS: Model[] = [
+    {
+      id: 'gpt-4o',
+      name: 'GPT-4o',
+      provider: 'openai',
+      tier: 'standard',
+      inputCostPer1k: 0.0025,
+      outputCostPer1k: 0.01,
+      maxContext: 128000,
+      strengths: ['reasoning', 'speed', 'multimodal'],
+    },
+    {
+      id: 'gpt-4o-mini',
+      name: 'GPT-4o mini',
+      provider: 'openai',
+      tier: 'cheap',
+      inputCostPer1k: 0.00015,
+      outputCostPer1k: 0.0006,
+      maxContext: 128000,
+      strengths: ['speed', 'cheap'],
+    },
+    {
+      id: 'o1-preview',
+      name: 'o1 Preview',
+      provider: 'openai',
+      tier: 'expensive',
+      inputCostPer1k: 0.015,
+      outputCostPer1k: 0.06,
+      maxContext: 128000,
+      strengths: ['complex reasoning'],
+    },
+  ];
+
+  constructor(apiKey: string) {
+    this.client = new OpenAI({ apiKey });
   }
 
-  async complete(request: CompletionRequest): Promise<string> {
-    const response = await this.completeWithMetadata(request);
-    return response.text;
+  listModels(): Model[] {
+    return OpenAIProvider.MODELS;
   }
 
-  async completeWithMetadata(
-    request: CompletionRequest
-  ): Promise<CompletionResponse> {
-    const body: Record<string, unknown> = {
-      model: this.model,
-      input: request.userMessage,
-    };
+  async complete(request: CompletionRequest): Promise<CompletionResponse> {
+    const model = OpenAIProvider.MODELS.find((m) => m.id === request.model);
+    if (!model) throw new Error(`Unknown model: ${request.model}`);
 
-    if (request.systemPrompt) {
-      body.instructions = request.systemPrompt;
-    }
-
-    if (request.maxTokens !== undefined) {
-      body.max_output_tokens = request.maxTokens;
-    }
-
-    if (request.temperature !== undefined) {
-      body.temperature = request.temperature;
-    }
-
-    const response = await fetch(`${this.baseUrl}/v1/responses`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+    const openaiTools: OpenAI.Chat.ChatCompletionTool[] | undefined = request.tools?.map((tool) => ({
+      type: 'function',
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
       },
-      body: JSON.stringify(body),
+    }));
+
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: request.systemPrompt },
+      ...request.messages.map((m) => {
+        if (typeof m.content === 'string') {
+          return {
+            role: m.role as any,
+            content: m.content,
+          };
+        }
+        // Handle tool results
+        return {
+          role: 'user', // Simplified mapping for now
+          content: m.content.map((res) => `Tool result (${res.toolCallId}): ${res.result}`).join('\n'),
+        };
+      }) as any,
+    ];
+
+    const response = await this.client.chat.completions.create({
+      model: request.model,
+      messages,
+      tools: openaiTools,
+      max_tokens: request.maxTokens,
+      temperature: request.temperature,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+    const choice = response.choices[0];
+    const text = choice.message.content || '';
+    const toolCalls: ToolCall[] = [];
+
+    if (choice.message.tool_calls) {
+      for (const tc of choice.message.tool_calls) {
+        if (tc.type === 'function') {
+          toolCalls.push({
+            id: tc.id,
+            name: tc.function.name,
+            arguments: JSON.parse(tc.function.arguments),
+          });
+        }
+      }
     }
 
-    const data = (await response.json()) as OpenAIResponse;
-    const text = extractOutputText(data.output);
-    const promptTokens = data.usage?.input_tokens ?? 0;
-    const completionTokens = data.usage?.output_tokens ?? 0;
+    const usage = {
+      inputTokens: response.usage?.prompt_tokens ?? 0,
+      outputTokens: response.usage?.completion_tokens ?? 0,
+    };
+
+    const cost =
+      (usage.inputTokens / 1000) * model.inputCostPer1k +
+      (usage.outputTokens / 1000) * model.outputCostPer1k;
 
     return {
       text,
-      promptTokens,
-      completionTokens,
-      model: data.model || this.model,
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      usage,
+      model: request.model,
+      cost,
     };
   }
 
-  estimateCost(_promptTokens: number, _completionTokens: number): number {
-    // Pricing varies by model and tier; keep 0 until we wire a pricing table.
-    return 0;
-  }
-}
+  estimateCost(request: CompletionRequest): CostEstimate {
+    const model = OpenAIProvider.MODELS.find((m) => m.id === request.model);
+    if (!model) throw new Error(`Unknown model: ${request.model}`);
 
-function extractOutputText(output?: OpenAIMessageItem[]): string {
-  if (!output) return '';
-  let text = '';
-  for (const item of output) {
-    if (!item?.content) continue;
-    for (const content of item.content) {
-      if (content?.type === 'output_text' && content.text) {
-        text += content.text;
-      }
-    }
+    // Very rough estimation
+    const charCount =
+      request.systemPrompt.length +
+      request.messages.reduce((acc, m) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
+    const inputTokens = Math.ceil(charCount / 4);
+    const outputTokens = request.maxTokens || 1000;
+
+    const estimatedCost =
+      (inputTokens / 1000) * model.inputCostPer1k + (outputTokens / 1000) * model.outputCostPer1k;
+
+    return {
+      inputTokens,
+      outputTokens,
+      estimatedCost,
+      confidence: 'low',
+    };
   }
-  return text;
 }

@@ -5,57 +5,90 @@
  * Core code uses this interface, implementations handle specific providers.
  */
 
+export type ModelTier = 'cheap' | 'standard' | 'expensive' | 'free';
+
+export interface Model {
+  id: string;                    // e.g. "claude-3-5-sonnet-20241022"
+  name: string;                  // Display name
+  provider: string;              // "anthropic", "openai", etc.
+  tier: ModelTier;
+  inputCostPer1k: number;        // USD per 1K input tokens
+  outputCostPer1k: number;       // USD per 1K output tokens
+  maxContext: number;            // Max tokens
+  strengths: string[];           // ["reasoning", "coding", "speed"]
+}
+
+export interface Message {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string | ToolResult[];
+}
+
+export interface ToolResult {
+  toolCallId: string;
+  result: string;
+}
+
+export interface Tool {
+  name: string;
+  description: string;
+  parameters: Record<string, any>; // JSON Schema
+}
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, any>;
+}
+
 export interface CompletionRequest {
-  /** System prompt */
+  model: string;
   systemPrompt: string;
-  /** User message */
-  userMessage: string;
-  /** Maximum tokens to generate */
+  messages: Message[];
+  tools?: Tool[];
   maxTokens?: number;
-  /** Temperature (0-1) */
   temperature?: number;
-  /** Stop sequences */
-  stopSequences?: string[];
 }
 
 export interface CompletionResponse {
-  /** Generated text */
   text: string;
-  /** Tokens used in prompt */
-  promptTokens: number;
-  /** Tokens generated */
-  completionTokens: number;
-  /** Model used */
+  toolCalls?: ToolCall[];
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+  };
   model: string;
+  cost: number;                  // Actual cost in USD
+}
+
+export interface CostEstimate {
+  inputTokens: number;           // Estimated
+  outputTokens: number;          // Estimated
+  estimatedCost: number;         // USD
+  confidence: 'low' | 'medium' | 'high';
 }
 
 export interface LLMProvider {
-  /** Provider name */
-  readonly name: string;
-
-  /**
-   * Generate a completion
-   */
-  complete(request: CompletionRequest): Promise<string>;
-
-  /**
-   * Generate a completion with full response metadata
-   */
-  completeWithMetadata(request: CompletionRequest): Promise<CompletionResponse>;
-
-  /**
-   * Estimate cost in credits for a request
-   */
-  estimateCost(promptTokens: number, completionTokens: number): number;
+  id: string;
+  listModels(): Model[];
+  complete(request: CompletionRequest): Promise<CompletionResponse>;
+  estimateCost(request: CompletionRequest): CostEstimate;
 }
 
 export interface LLMConfig {
   /** Provider type */
-  provider: 'anthropic' | 'openai';
+  provider: 'anthropic' | 'openai' | 'qwen' | 'local';
   /** API key */
   apiKey: string;
   /** Model to use */
   model: string;
   /** Base URL (optional, for proxies) */
   baseUrl?: string;
+  /** Anthropic config */
+  anthropic?: { apiKey: string; models: string[] };
+  /** OpenAI config */
+  openai?: { apiKey: string; models: string[] };
+  /** Qwen config */
+  qwen?: { apiKey: string; models: string[] };
+  /** Local config */
+  local?: { endpoint: string; models: string[] };
 }

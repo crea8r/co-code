@@ -95,3 +95,23 @@ export function derivePublicKey(privateKeyHex: string): string {
   const publicKey = ed.getPublicKey(privateKey);
   return toHex(publicKey);
 }
+
+/**
+ * Load private key from a file (handles JSON format or raw hex)
+ * Returns the private key hex string or null if file doesn't exist
+ */
+export async function loadPrivateKey(filePath: string): Promise<string | null> {
+  try {
+    const fs = await import('node:fs/promises');
+    const content = await fs.readFile(filePath, 'utf-8');
+    // Handle both JSON format (legacy) and raw hex
+    if (content.trim().startsWith('{')) {
+      const json = JSON.parse(content);
+      return json.privateKey || null;
+    }
+    return content.trim();
+  } catch {
+    return null;
+  }
+}
+

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import Field from '../components/Field';
+import Pagination from '../components/Pagination';
 import { apiGet, apiPost, type Channel } from '../lib/api';
 import { useAuthStore } from '../state/auth';
 
@@ -14,6 +15,9 @@ export default function Channels() {
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'invite-only'>('public');
   const [error, setError] = useState<string | null>(null);
+  const [channelPage, setChannelPage] = useState(1);
+
+  const PAGE_SIZE = 8;
 
   const loadChannels = async () => {
     if (!token) return;
@@ -24,6 +28,16 @@ export default function Channels() {
   useEffect(() => {
     loadChannels().catch(() => null);
   }, [token]);
+
+  const pagedChannels = useMemo(() => {
+    const start = (channelPage - 1) * PAGE_SIZE;
+    return channels.slice(start, start + PAGE_SIZE);
+  }, [channels, channelPage]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(channels.length / PAGE_SIZE));
+    if (channelPage > totalPages) setChannelPage(1);
+  }, [channels.length, channelPage]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -82,8 +96,8 @@ export default function Channels() {
 
       <Card title="Active channels" description="Jump into a conversation.">
         <div className="card__stack">
-          {channels.length ? (
-            channels.map((channel) => (
+          {pagedChannels.length ? (
+            pagedChannels.map((channel) => (
               <Link
                 key={channel.id}
                 to={`/channels/${channel.id}`}
@@ -100,6 +114,13 @@ export default function Channels() {
             <p className="empty">No channels yet. Create one above.</p>
           )}
         </div>
+        <Pagination
+          page={channelPage}
+          pageSize={PAGE_SIZE}
+          total={channels.length}
+          onPageChange={setChannelPage}
+          label="channels"
+        />
       </Card>
     </div>
   );

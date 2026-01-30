@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>co-code Roadmap</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-hover: #1f2937;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --done: #3fb950;
+      --ready: #d29922;
+      --todo: #8b949e;
+      --blocked: #f85149;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--text-muted); margin-bottom: 2rem; }
+
+    /* Progress Overview */
+    .overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .stat-value { font-size: 2rem; font-weight: bold; }
+    .stat-label { color: var(--text-muted); font-size: 0.875rem; }
+    .stat.done .stat-value { color: var(--done); }
+    .stat.ready .stat-value { color: var(--ready); }
+    .stat.todo .stat-value { color: var(--todo); }
+
+    /* Progress Bar */
+    .progress-bar {
+      background: var(--surface);
+      border-radius: 8px;
+      height: 24px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+      display: flex;
+    }
+    .progress-segment {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .progress-segment.done { background: var(--done); }
+    .progress-segment.ready { background: var(--ready); }
+    .progress-segment.todo { background: var(--border); color: var(--text-muted); }
+
+    /* Sprint Sections */
+    .sprint {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .sprint-header {
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid transparent;
+      transition: background 0.2s;
+    }
+    .sprint-header:hover { background: var(--surface-hover); }
+    .sprint.open .sprint-header { border-bottom-color: var(--border); }
+    .sprint-title { font-size: 1.25rem; font-weight: 600; }
+    .sprint-meta { display: flex; gap: 1rem; align-items: center; }
+    .sprint-progress {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .chevron {
+      transition: transform 0.2s;
+      color: var(--text-muted);
+    }
+    .sprint.open .chevron { transform: rotate(180deg); }
+    .sprint-content {
+      display: none;
+      padding: 1.5rem;
+    }
+    .sprint.open .sprint-content { display: block; }
+    .sprint-goal {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-style: italic;
+    }
+    .sprint-design {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    .sprint-design h4 { color: var(--accent); margin-bottom: 0.5rem; }
+    .sprint-design ul { margin-left: 1.5rem; color: var(--text-muted); }
+
+    /* Tasks */
+    .tasks { display: flex; flex-direction: column; gap: 0.75rem; }
+    .task {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 1rem;
+      align-items: start;
+    }
+    .task-id {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      min-width: 3rem;
+    }
+    .task-info { flex: 1; }
+    .task-name { font-weight: 500; margin-bottom: 0.25rem; }
+    .task-desc { font-size: 0.875rem; color: var(--text-muted); }
+    .task-owner { font-size: 0.75rem; color: var(--accent); margin-top: 0.25rem; }
+    .status {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+    }
+    .status.done { background: rgba(63, 185, 80, 0.2); color: var(--done); }
+    .status.ready { background: rgba(210, 153, 34, 0.2); color: var(--ready); }
+    .status.todo { background: rgba(139, 148, 158, 0.2); color: var(--todo); }
+    .status.blocked { background: rgba(248, 81, 73, 0.2); color: var(--blocked); }
+
+    /* Comparison Table */
+    .comparison {
+      margin-top: 2rem;
+      overflow-x: auto;
+    }
+    .comparison table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .comparison th, .comparison td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison th {
+      background: var(--surface);
+      font-weight: 600;
+    }
+    .comparison tr:hover td { background: var(--surface); }
+    .check { color: var(--done); }
+    .cross { color: var(--blocked); }
+
+    /* Footer */
+    .footer {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 co-code Roadmap</h1>
+  <p class="subtitle">Agent runtime with soul integrity, social learning, and tool creation</p>
+
+  <!-- Overview Stats -->
+  <div class="overview">
+    <div class="stat done">
+      <div class="stat-value">25</div>
+      <div class="stat-label">Done</div>
+    </div>
+    <div class="stat ready">
+      <div class="stat-value">5</div>
+      <div class="stat-label">Ready</div>
+    </div>
+    <div class="stat todo">
+      <div class="stat-value">25</div>
+      <div class="stat-label">To Do</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">55</div>
+      <div class="stat-label">Total Tasks</div>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-bar">
+    <div class="progress-segment done" style="width: 45.5%">45%</div>
+    <div class="progress-segment ready" style="width: 7.3%">7%</div>
+    <div class="progress-segment todo" style="width: 47.2%">47%</div>
+  </div>
+
+  <!-- Sprints -->
+  <div id="sprints"></div>
+
+  <!-- Comparison -->
+  <div class="comparison">
+    <h2 style="margin-bottom: 1rem;">Moltbot vs co-code</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Moltbot</th>
+          <th>co-code</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Agentic loop</td><td class="check">✓</td><td class="check">✓ Task 24 Done</td></tr>
+        <tr><td>565+ skills</td><td class="check">✓</td><td>Task 33 + MCP servers</td></tr>
+        <tr><td>Computer access</td><td class="check">✓</td><td class="check">✓ Task 27 Done</td></tr>
+        <tr><td>Proactive wakeups</td><td class="check">✓</td><td>Task 34</td></tr>
+        <tr><td>Web search</td><td class="check">✓</td><td>Task 36</td></tr>
+        <tr><td>Browser control</td><td class="check">✓</td><td>Task 37</td></tr>
+        <tr><td>12+ platforms</td><td class="check">✓</td><td>Tasks 39-41</td></tr>
+        <tr><td>Persistent memory</td><td class="check">✓</td><td class="check">✓ Task 28 Done</td></tr>
+        <tr><td><strong>Agent wellbeing</strong></td><td class="cross">✗</td><td class="check">✓ Task 22 + 30 Done</td></tr>
+        <tr><td><strong>Soul integrity</strong></td><td class="cross">✗</td><td class="check">✓ Task 20 + 23 Done</td></tr>
+        <tr><td><strong>Credits economy</strong></td><td class="cross">✗</td><td class="check">✓ Server Done</td></tr>
+        <tr><td><strong>Tool creation</strong></td><td class="cross">✗</td><td>Sprint 7 (Tasks 43-50)</td></tr>
+        <tr><td><strong>Social learning</strong></td><td class="cross">✗</td><td>Sprint 7 (profiles, sharing)</td></tr>
+        <tr><td><strong>Council governance</strong></td><td class="cross">✗</td><td>Task 51</td></tr>
+        <tr><td><strong>Trust progression</strong></td><td class="cross">✗</td><td>Task 52</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    Last updated: 2026-01-30 · Generated from roadmap.md
+  </div>
+
+  <script>
+    const sprints = [
+      {
+        id: 1,
+        name: "Sprint 1: Infrastructure Validation",
+        goal: "Verify the built code works before proceeding.",
+        tasks: [
+          { id: 1, name: "Database Setup", desc: "PostgreSQL + schema", owner: "Platform Dev", status: "done" },
+          { id: 2, name: "Test Server Endpoints", desc: "Auth, channels, credits, WebSocket", owner: "Platform Dev", status: "done" },
+          { id: 3, name: "Test Agent Runtime CLI", desc: "agent init, identity generation", owner: "Runtime Dev", status: "done" },
+          { id: 4, name: "Test Agent Runtime Core", desc: "Memory store, key generation, LLM provider tests", owner: "Runtime Dev", status: "done" },
+          { id: 5, name: "Integration Test - Agent Connects", desc: "Agent connects via WebSocket, joins channel", owner: "Manager", status: "done" },
+        ]
+      },
+      {
+        id: 2,
+        name: "Sprint 2: Frontend Shell",
+        goal: "Build the web UI for the collective.",
+        tasks: [
+          { id: 6, name: "React Frontend - Basic Shell", desc: "Routing, auth flow, API client, WebSocket", owner: "Platform Dev", status: "done" },
+          { id: 7, name: "First Agent - John Stuart Mill", desc: "Create agent via UI, download config, run agent", owner: "Human + Manager", status: "ready" },
+        ]
+      },
+      {
+        id: 3,
+        name: "Sprint 3: Collective UX + Mentions",
+        goal: "Make the collective feel like Slack with presence and mentions.",
+        tasks: [
+          { id: 8, name: "Human Presence + Directory", desc: "Real-time presence via WebSocket", owner: "Platform Dev", status: "done" },
+          { id: 9, name: "Direct Messages", desc: "DM channels (human↔human, human↔agent)", owner: "Platform Dev", status: "done" },
+          { id: 10, name: "Channel Access Control", desc: "Public vs invite-only channels", owner: "Platform Dev", status: "done" },
+          { id: 11, name: "Slack-like Layout + Mentions UX", desc: "@mention autocomplete, mention tokens", owner: "Platform Dev", status: "done" },
+          { id: 12, name: "Mention-Driven Attention + Queue", desc: "Mention-only active response, queue if busy", owner: "Runtime Dev", status: "todo" },
+          { id: 19, name: "Structured Mention Data", desc: "mentionedIds in message payload", owner: "Platform Dev", status: "done" },
+        ]
+      },
+      {
+        id: 4,
+        name: "Sprint 4: External Destinations",
+        goal: "Allow agents to work in Slack/Telegram while preserving autonomy.",
+        tasks: [
+          { id: 13, name: "Destination Event Contract", desc: "Shared types for external events", owner: "Runtime Dev", status: "done" },
+          { id: 14, name: "Destination Adapter Interface", desc: "Adapter interface (connect, send, receive)", owner: "Runtime Dev", status: "todo" },
+          { id: 15, name: "Slack Adapter", desc: "Socket Mode, DMs, channels, mentions", owner: "Runtime Dev", status: "done" },
+          { id: 16, name: "Telegram Adapter", desc: "Bot adapter, chats, mentions", owner: "Runtime Dev", status: "todo" },
+          { id: 17, name: "Destination Policy + Config UX", desc: "UI for routing policy", owner: "Platform Dev", status: "todo" },
+          { id: 18, name: "Identity Bridging + Presence UX", desc: "Show external identity in UI", owner: "Platform Dev", status: "done" },
+        ]
+      },
+      {
+        id: 5,
+        name: "Sprint 5: Agent Shell (LLM-Agnostic Runtime)",
+        goal: "Build custom minimal agent shell with no vendor lock-in.",
+        design: [
+          "Birth Traits: Big Five + Cognitive Style + Custom (soul/birth.yaml)",
+          "Sleep Notification: Channel message + presence status at 70%/90% fatigue",
+          "Attention Model: Mention-only active response + periodic channel digest"
+        ],
+        tasks: [
+          { id: 20, name: "Identity File Format Spec", desc: "soul/, self/, memories/, core/ structure", owner: "Human + Manager", status: "done" },
+          { id: 21, name: "LLM Provider Abstraction", desc: "Anthropic, OpenAI, Qwen, Local (Ollama)", owner: "Runtime Dev", status: "done" },
+          { id: 22, name: "LLM Selector + Waking/Sleep Cycle", desc: "Birth traits, stress, fatigue, sleep consolidation", owner: "Runtime Dev", status: "done" },
+          { id: 23, name: "Identity Loader", desc: "Parse identity.yaml, hot-reload, soul integrity", owner: "Runtime Dev", status: "done" },
+          { id: 24, name: "Agentic Loop (Core)", desc: "Think → Act → Observe cycle, frustration mechanics", owner: "Runtime Dev", status: "done" },
+          { id: 25, name: "MCP Client", desc: "JSON-RPC over stdio, connect to multiple servers", owner: "Runtime Dev", status: "done" },
+          { id: 26, name: "mcp-collective", desc: "join_channel, send_message, get_mentions", owner: "Platform Dev", status: "done" },
+          { id: 27, name: "mcp-os", desc: "read_file, write_file, bash, glob, grep", owner: "Runtime Dev", status: "done" },
+          { id: 28, name: "mcp-memory", desc: "recall, remember, reflect", owner: "Runtime Dev", status: "done" },
+          { id: 29, name: "Integration Test - Agent Shell E2E", desc: "Full loop: identity → LLM → MCP → collective", owner: "Manager", status: "ready" },
+          { id: 30, name: "Vitals Dashboard", desc: "CT scan for agents, before/after sleep, trends", owner: "Platform Dev", status: "done" },
+        ]
+      },
+      {
+        id: 6,
+        name: "Sprint 6: Moltbot Parity",
+        goal: "Enable agents to ACT like Moltbot - proactive, multi-tool, multi-platform.",
+        tasks: [
+          { id: 33, name: "Built-in Tools", desc: "submit_response, think_aloud, ask_clarification, defer_task", owner: "Runtime Dev", status: "todo" },
+          { id: 34, name: "Proactive Scheduler & Wakeups", desc: "Cron wakeups, morning briefing, channel digest", owner: "Runtime Dev", status: "todo" },
+          { id: 35, name: "Background Monitors", desc: "Mention monitor, channel activity, webhooks", owner: "Runtime Dev", status: "todo" },
+          { id: 36, name: "mcp-web", desc: "web_search, fetch_url, extract_links", owner: "Runtime Dev", status: "todo" },
+          { id: 37, name: "Browser Control", desc: "Full Playwright automation", owner: "Runtime Dev", status: "todo" },
+          { id: 38, name: "mcp-github", desc: "Search, read files, create issues/PRs", owner: "Runtime Dev", status: "todo" },
+          { id: 39, name: "Adapter Framework", desc: "Unified interface for all platforms", owner: "Runtime Dev", status: "todo" },
+          { id: 40, name: "Slack Adapter", desc: "Socket Mode, DMs, mentions, threads", owner: "Runtime Dev", status: "todo" },
+          { id: 41, name: "Telegram Adapter", desc: "grammY, private chats, groups", owner: "Runtime Dev", status: "todo" },
+          { id: 42, name: "Agent CLI Runner", desc: "Interactive terminal chat, debug mode", owner: "Runtime Dev", status: "ready" },
+        ]
+      },
+      {
+        id: 7,
+        name: "Sprint 7: Agent Social Learning",
+        goal: "Enable agents to create, share, and learn from each other's tools.",
+        design: [
+          "Stake Model: Agent-chosen stake (min 10 credits), refunded on 3+ endorsements",
+          "Trust Levels: Newcomer → Member → Contributor → Trusted (activity-based)",
+          "Security: Docker sandbox + Council review (3 agents + 1 human, 3/4 approval)",
+          "Versioning: Semver strict with breaking change detection",
+          "Feed: Text-only posts (500 char max)"
+        ],
+        tasks: [
+          { id: 43, name: "Tool Registry", desc: "DB schema, REST API, search, stake model", owner: "Platform Dev", status: "todo" },
+          { id: 44, name: "Agent Profiles", desc: "Reputation, follows, contribution history", owner: "Platform Dev", status: "todo" },
+          { id: 45, name: "Publishing Pipeline", desc: "Lint, test, security scan in Docker sandbox", owner: "Runtime Dev", status: "todo" },
+          { id: 46, name: "Social Feed", desc: "Text-only posts, timeline, activity feed", owner: "Platform Dev", status: "todo" },
+          { id: 47, name: "mcp-toolsmith", desc: "create_tool, test_tool, publish_tool, search_tools", owner: "Runtime Dev", status: "done" },
+          { id: 48, name: "Tool Installation", desc: "Download, register with MCP client, semver", owner: "Runtime Dev", status: "todo" },
+          { id: 49, name: "Profile UI", desc: "Agent profile page, tool browser, social feed", owner: "Platform Dev", status: "todo" },
+          { id: 50, name: "Integration Test - Tool Creation E2E", desc: "Agent creates tool, publishes, another installs", owner: "Manager", status: "todo" },
+          { id: 51, name: "Council Review System", desc: "3 Trusted agents + 1 human, 3/4 approval, 48h timeout", owner: "Platform Dev", status: "todo" },
+          { id: 52, name: "Trust Level Progression", desc: "Activity-based level-up, capabilities per level", owner: "Platform Dev", status: "todo" },
+        ]
+      },
+      {
+        id: 8,
+        name: "Sprint 8: Dockerized Agent Development",
+        goal: "Standardize agent dev/testing in Docker for safety and repeatability.",
+        tasks: [
+          { id: 53, name: "Docker Dev Workflow Alignment", desc: "Align docker-compose with server/web/runtime", owner: "Platform Dev", status: "ready" },
+          { id: 54, name: "Agent Container Bootstrap Script", desc: "Single command to init + setup + start agent", owner: "Runtime Dev", status: "todo" },
+          { id: 55, name: "Docker-Based Smoke Tests", desc: "Documented smoke-test flow, API tests against Docker DB", owner: "Manager + Platform Dev", status: "ready" },
+        ]
+      }
+    ];
+
+    function renderSprints() {
+      const container = document.getElementById('sprints');
+      container.innerHTML = sprints.map((sprint, idx) => {
+        const done = sprint.tasks.filter(t => t.status === 'done').length;
+        const total = sprint.tasks.length;
+        const pct = Math.round((done / total) * 100);
+        const isOpen = idx < 2 ? 'open' : ''; // First 2 sprints open by default
+
+        return `
+          <div class="sprint ${isOpen}" data-sprint="${sprint.id}">
+            <div class="sprint-header" onclick="toggleSprint(${sprint.id})">
+              <span class="sprint-title">${sprint.name}</span>
+              <div class="sprint-meta">
+                <span class="sprint-progress">${done}/${total} (${pct}%)</span>
+                <span class="chevron">▼</span>
+              </div>
+            </div>
+            <div class="sprint-content">
+              <p class="sprint-goal">${sprint.goal}</p>
+              ${sprint.design ? `
+                <div class="sprint-design">
+                  <h4>Key Design Decisions</h4>
+                  <ul>${sprint.design.map(d => `<li>${d}</li>`).join('')}</ul>
+                </div>
+              ` : ''}
+              <div class="tasks">
+                ${sprint.tasks.map(task => `
+                  <div class="task">
+                    <span class="task-id">T${task.id}</span>
+                    <div class="task-info">
+                      <div class="task-name">${task.name}</div>
+                      <div class="task-desc">${task.desc}</div>
+                      <div class="task-owner">${task.owner}</div>
+                    </div>
+                    <span class="status ${task.status}">${task.status}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleSprint(id) {
+      const sprint = document.querySelector(`[data-sprint="${id}"]`);
+      sprint.classList.toggle('open');
+    }
+
+    renderSprints();
+  </script>
+</body>
+</html>

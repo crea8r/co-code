@@ -6,7 +6,7 @@
  */
 
 import type { MemoryConsolidator } from './memory/consolidation.js';
-import type { Vitals, RuntimeState } from './types.js';
+import type { Vitals } from '../identity/types.js';
 
 export interface SleepCycleReport {
   timestamp: string;
@@ -23,11 +23,43 @@ export class SleepManager {
   ) {}
 
   /**
+   * Ensure waking state is initialized.
+   */
+  wakeIfNeeded(): void {
+    if (this.vitals.waking.current <= 0) {
+      this.vitals.waking.current = this.vitals.waking.capacity;
+    }
+    this.vitals.waking.lastWake = new Date().toISOString();
+  }
+
+  /**
    * Consume waking capacity (energy)
    * @param amount Units of energy to consume (approx tokens/activity)
    */
   consumeEnergy(amount: number): void {
     this.vitals.waking.current = Math.max(0, this.vitals.waking.current - amount);
+  }
+
+  /**
+   * Get usage ratio (0.0 - 1.0) of waking capacity.
+   */
+  getUsageRatio(): number {
+    if (this.vitals.waking.capacity <= 0) return 1;
+    return 1 - this.vitals.waking.current / this.vitals.waking.capacity;
+  }
+
+  /**
+   * Should warn collaborators (threshold warn).
+   */
+  shouldWarn(): boolean {
+    return this.getUsageRatio() >= this.vitals.waking.thresholdWarn;
+  }
+
+  /**
+   * Should enter critical sleep state (threshold critical).
+   */
+  shouldCritical(): boolean {
+    return this.getUsageRatio() >= this.vitals.waking.thresholdCritical;
   }
 
   /**
@@ -62,6 +94,7 @@ export class SleepManager {
 
     // 2. Recharge energy
     this.vitals.waking.current = this.vitals.waking.capacity;
+    this.vitals.waking.lastSleep = new Date().toISOString();
 
     // 3. Reduce stress
     // Consolidation helps, but sleep itself reduces stress

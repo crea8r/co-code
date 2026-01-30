@@ -1,0 +1,35 @@
+# Collective Server
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install build dependencies for bcrypt + healthcheck utility
+RUN apk add --no-cache python3 make g++ wget
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.base.json ./
+COPY packages/shared/package*.json ./packages/shared/
+COPY packages/collective-server/package*.json ./packages/collective-server/
+
+# Install dependencies
+RUN npm ci --ignore-scripts
+RUN npm rebuild bcrypt
+
+# Copy source
+COPY packages/shared/ ./packages/shared/
+COPY packages/collective-server/ ./packages/collective-server/
+
+# Build
+RUN npm run build -w @co-code/shared
+RUN npm run build -w @co-code/collective-server
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Start server
+CMD ["npm", "run", "start", "-w", "@co-code/collective-server"]

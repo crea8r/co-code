@@ -104,20 +104,24 @@ export class MCPClient implements IMCPClient {
       arguments: args,
     });
 
+    // Type for content items from MCP SDK
+    type ContentItem = { type: string; text?: string; mimeType?: string; resource?: { uri: string } };
+    const content = result.content as ContentItem[];
+
     // Check for error in content
     if (result.isError) {
-      const errorText = result.content
-        .map((c) => (c.type === 'text' ? c.text : ''))
+      const errorText = content
+        .map((c: ContentItem) => (c.type === 'text' ? c.text : ''))
         .join('\n');
       throw new Error(`Tool call failed: ${errorText}`);
     }
 
     // Combine text content
-    const output = result.content
-      .map((c) => {
+    const output = content
+      .map((c: ContentItem) => {
         if (c.type === 'text') return c.text;
         if (c.type === 'image') return `[Image: ${c.mimeType}]`; // Basic handling for now
-        if (c.type === 'resource') return `[Resource: ${c.resource.uri}]`;
+        if (c.type === 'resource') return `[Resource: ${c.resource?.uri}]`;
         return '';
       })
       .join('\n');

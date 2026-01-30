@@ -14,6 +14,7 @@ import websocket from '@fastify/websocket';
 import { initDatabase, closeDatabase } from './db/client.js';
 import { registerRoutes } from './api/routes.js';
 import { registerWebSocketHandler } from './websocket/handler.js';
+import { registerVitalsRoutes } from './api/vitals.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -85,6 +86,7 @@ export async function createServer(config: ServerConfig) {
 
   // Register routes
   registerRoutes(app);
+  registerVitalsRoutes(app);
 
   // Register WebSocket handler
   registerWebSocketHandler(app);

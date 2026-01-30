@@ -56,7 +56,14 @@ describe('ModelSelector', () => {
     mockState = {
       agentPath: '/mock',
       soul: {
-        birthTraits: generateBirthTraits(),
+        birthTraits: {
+          ...generateBirthTraits(),
+          selfInfluence: {
+            curiosity: 0.5,
+            patience: 0.5,
+            empathy: 0.5,
+          },
+        },
         integritySignature: '',
       },
       self: DEFAULT_SELF,

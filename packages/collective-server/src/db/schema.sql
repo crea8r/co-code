@@ -77,6 +77,27 @@ CREATE TABLE destination_configs (
 );
 
 -- ============================================
+-- AGENT VITALS
+-- ============================================
+CREATE TABLE agent_vitals_current (
+    agent_id UUID PRIMARY KEY REFERENCES agents(id) ON DELETE CASCADE,
+    state JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE agent_vitals_cycles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    wake_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    sleep_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    before_sleep JSONB NOT NULL DEFAULT '{}'::jsonb,
+    after_sleep JSONB NOT NULL DEFAULT '{}'::jsonb,
+    models_used JSONB NOT NULL DEFAULT '{}'::jsonb,
+    budget JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
 -- AGENT TOKENS
 -- (JWT tokens for agent authentication)
 -- ============================================

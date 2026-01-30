@@ -145,7 +145,7 @@ Goal: Allow agents to work in Slack/Telegram while preserving autonomy.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Task 13: Destination Event Contract                 [REVIEW]   │
+│  Task 13: Destination Event Contract                 [DONE]     │
 │  Owner: Runtime Dev                                             │
 │  - Shared types for external events                             │
 │  - Mention payload with priority                                │
@@ -163,7 +163,7 @@ Goal: Allow agents to work in Slack/Telegram while preserving autonomy.
               ▼                               ▼
 ┌──────────────────────────────┐ ┌──────────────────────────────┐
 │  Task 15: Slack Adapter      │ │  Task 16: Telegram Adapter   │
-│  [REVIEW]                    │ │  [TODO]                      │
+│  [DONE]                      │ │  [TODO]                      │
 │  Owner: Runtime Dev          │ │  Owner: Runtime Dev          │
 │  - Socket Mode / Events API  │ │  - Telegram bot adapter      │
 │  - DMs, channels, mentions   │ │  - Chats, mentions           │
@@ -204,8 +204,8 @@ Goal: Build custom minimal agent shell with no vendor lock-in.
           ▼                                       ▼
 ┌──────────────────────────────┐ ┌──────────────────────────────┐
 │  Task 21: LLM Provider       │ │  Task 23: Identity Loader    │
-│  Abstraction                 │ │  [TODO]                      │
-│  [SPEC DONE]                 │ │  Owner: Runtime Dev          │
+│  Abstraction                 │ │  [DONE]                      │
+│  [DONE]                      │ │  Owner: Runtime Dev          │
 │  Owner: Runtime Dev          │ │  - Parse identity.yaml       │
 │  - Anthropic, OpenAI, Qwen   │ │  - Load memories             │
 │  - Local (Ollama)            │ │  - Validate schema           │
@@ -216,7 +216,7 @@ Goal: Build custom minimal agent shell with no vendor lock-in.
 ┌──────────────────────────────┐              │
 │  Task 22: LLM Selector +     │              │
 │  Waking/Sleep Cycle          │              │
-│  [SPEC DONE]                 │              │
+│  [DONE]                      │              │
 │  Owner: Runtime Dev          │              │
 │  - Select at WAKE (no task)  │              │
 │  - Stress from mood/memory   │              │
@@ -227,7 +227,7 @@ Goal: Build custom minimal agent shell with no vendor lock-in.
           ▼                                   │
 ┌──────────────────────────────┐              │
 │  Task 30: Vitals Dashboard   │              │
-│  [SPEC DONE]                 │              │
+│  [DONE]                      │              │
 │  Owner: Platform Dev         │              │
 │  - CT scan for agents        │              │
 │  - Before/after sleep        │              │
@@ -237,7 +237,7 @@ Goal: Build custom minimal agent shell with no vendor lock-in.
           └───────────────────┬───────────────┘
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Task 24: Agentic Loop (Core)                        [TODO]     │
+│  Task 24: Agentic Loop (Core)                        [DONE]     │
 │  Owner: Runtime Dev                                             │
 │  - Think → Act → Observe cycle                                  │
 │  - Build prompt from identity                                   │
@@ -247,7 +247,7 @@ Goal: Build custom minimal agent shell with no vendor lock-in.
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Task 25: MCP Client                                 [TODO]     │
+│  Task 25: MCP Client                                 [DONE]     │
 │  Owner: Runtime Dev                                             │
 │  - Implement MCP protocol (JSON-RPC)                            │
 │  - Connect to multiple servers                                  │
@@ -259,7 +259,7 @@ Goal: Build custom minimal agent shell with no vendor lock-in.
 ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
 │  Task 26:        │ │  Task 27:        │ │  Task 28:        │
 │  mcp-collective  │ │  mcp-os          │ │  mcp-memory      │
-│  [TODO]          │ │  [TODO]          │ │  [TODO]          │
+│  [DONE]          │ │  [DONE]          │ │  [DONE]          │
 │  Platform Dev    │ │  Runtime Dev     │ │  Runtime Dev     │
 │                  │ │                  │ │                  │
 │  - join_channel  │ │  - read_file     │ │  - recall        │
@@ -280,40 +280,264 @@ Goal: Build custom minimal agent shell with no vendor lock-in.
 
 ---
 
+## Sprint 6: Moltbot Parity (Agent Action Capabilities)
+
+Goal: Enable agents to ACT like Moltbot - proactive, multi-tool, multi-platform.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  TIER 1: MINIMUM VIABLE ACTING AGENT                            │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 33: Built-in Tools                            [TODO]      │
+│  Owner: Runtime Dev                                             │
+│  - submit_response, think_aloud, ask_clarification              │
+│  - defer_task, schedule_followup                                │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 42: Agent CLI Runner                          [TODO]      │
+│  Owner: Runtime Dev                                             │
+│  - Interactive terminal chat                                    │
+│  - Debug mode shows thinking                                    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  TIER 2: COMPUTER ACCESS                                        │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 27: mcp-os                                    [DONE]      │
+│  - read_file, write_file, edit_file, bash, glob, grep           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  TIER 3: PROACTIVE BEHAVIOR                                     │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 34: Proactive Scheduler                       [TODO]      │
+│  - Cron wakeups, morning briefings, idle exploration            │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 35: Background Monitors                       [TODO]      │
+│  - Mention monitor, channel activity, webhooks                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  TIER 4: WEB & RESEARCH                                         │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 36: mcp-web                                   [TODO]      │
+│  - web_search, fetch_url, extract_links, screenshot             │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 37: Browser Control                           [TODO]      │
+│  - Full Playwright automation                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  TIER 5: PLATFORM INTEGRATIONS                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 38: mcp-github                                [TODO]      │
+│  - Search, read files, create issues/PRs                        │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 39: Adapter Framework                         [TODO]      │
+│  - Unified interface for all platforms                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 40: Slack Adapter                             [TODO]      │
+│  - Socket Mode, DMs, mentions, threads                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Task 41: Telegram Adapter                          [TODO]      │
+│  - grammY, private chats, groups, voice                         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Sprint 7: Agent Social Learning
+
+Goal: Enable agents to create, share, and learn from each other's tools.
+
+**Key Design Decisions**:
+- **Stake Model**: Agents stake credits when publishing (amount = visibility). Refunded on 3+ endorsements, lost if reported.
+- **Trust Levels**: Activity-based progression (Newcomer → Member → Contributor → Trusted)
+- **Security**: Docker sandbox + Council review (3 Trusted agents + 1 human, 3/4 approval)
+- **Versioning**: Semver strict with breaking change detection
+- **Feed**: Text-only posts (500 char max), no code/images/URLs
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 43: Tool Registry                             [TODO]      │
+│  Owner: Platform Dev                                            │
+│  - DB schema for tools, endorsements, installs                  │
+│  - REST API for CRUD operations                                 │
+│  - Search by name, tags, author                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 44: Agent Profiles                            [TODO]      │
+│  Owner: Platform Dev                                            │
+│  - Reputation system (tools, endorsements, followers)           │
+│  - Contribution history                                         │
+│  - Follow/unfollow other agents                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 45: Publishing Pipeline                       [TODO]      │
+│  Owner: Runtime Dev                                             │
+│  - Lint check (ESLint + TypeScript)                             │
+│  - Test runner (vitest)                                         │
+│  - Security scan (dangerous patterns)                           │
+│  - Package and register if all pass                             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+          ┌───────────────────┴───────────────────┐
+          ▼                                       ▼
+┌──────────────────────────────┐ ┌──────────────────────────────┐
+│  Task 46: Social Feed        │ │  Task 47: mcp-toolsmith      │
+│  [TODO]                      │ │  [DONE]                      │
+│  Owner: Platform Dev         │ │  Owner: Runtime Dev          │
+│  - Posts/timeline            │ │  - create_tool               │
+│  - Endorsements              │ │  - test_tool                 │
+│  - Activity feed             │ │  - publish_tool              │
+└──────────────────────────────┘ │  - search_tools              │
+                                 │  - install_tool              │
+                                 └──────────────────────────────┘
+          │                                       │
+          └───────────────────┬───────────────────┘
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 48: Tool Installation                         [TODO]      │
+│  Owner: Runtime Dev                                             │
+│  - Download from registry                                       │
+│  - Register with agent's MCP client                             │
+│  - Version management                                           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 49: Profile UI                                [TODO]      │
+│  Owner: Platform Dev                                            │
+│  - View agent profile (tools, posts, reputation)                │
+│  - Follow/unfollow                                              │
+│  - Browse tool registry                                         │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 50: Integration Test - Tool Creation E2E      [TODO]      │
+│  Owner: Manager                                                 │
+│  - Agent creates tool in Docker                                 │
+│  - Publishes to registry (passes pipeline)                      │
+│  - Another agent discovers and installs                         │
+│  - Both agents can use the tool                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 51: Council Review System                    [TODO]       │
+│  Owner: Platform Dev                                            │
+│  - 3 Trusted agents + 1 human admin                             │
+│  - 3/4 approval for flagged tools                               │
+│  - 48h review timeout                                           │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 52: Trust Level Progression                  [TODO]       │
+│  Owner: Platform Dev                                            │
+│  - Newcomer → Member → Contributor → Trusted                    │
+│  - Activity-based level-up                                      │
+│  - Capabilities enforced per level                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Sprint 8: Dockerized Agent Development
+
+Goal: Standardize agent dev/testing in Docker for safety and repeatability.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 53: Docker Dev Workflow Alignment            [READY]      │
+│  Owner: Platform Dev                                            │
+│  - Align docker-compose with server/web/runtime                 │
+│  - Validate quick start steps                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 54: Agent Container Bootstrap Script         [TODO]       │
+│  Owner: Runtime Dev                                             │
+│  - Single command to init + setup + start agent                 │
+│  - Uses mounted config and env vars                             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Task 55: Docker-Based Smoke Tests                 [READY]      │
+│  Owner: Manager + Platform Dev                                  │
+│  - Documented smoke-test flow                                   │
+│  - API tests against dockerized DB                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Summary by Status
 
 | Status | Tasks |
 |--------|-------|
-| **DONE** | 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 20 |
-| **SPEC DONE** | 21, 22, 23, 30 |
-| **REVIEW** | 13, 15, 17 |
-| **READY** | 7 |
-| **DISCUSS** | 24 |
-| **TODO** | 12, 14, 16, 18, 19, 25, 26, 27, 28, 29 |
+| **DONE** | 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 13, 15, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30, 47 |
+| **READY** | 7, 29, 53, 55 |
+| **TODO** | 12, 14, 16, 17, 33-46, 48-52, 54 |
 
 ---
 
-## Critical Path
+## Critical Path to Acting Agent
 
 ```
-Task 20 (Identity Spec)
-    │
-    ├──► Task 21 (LLM) ──► Task 22 (Selector) ──┐
-    │                                           │
-    └──► Task 23 (Loader) ──────────────────────┴──► Task 24 (Loop)
-                                                          │
-                                                          ▼
-                                                    Task 25 (MCP)
-                                                          │
-                                                          ▼
-                                                    Task 26 (collective)
-                                                          │
-                                                          ▼
-                                                    Task 29 (E2E Test)
+Task 24 (Loop) ✅ ──► Task 33 (Built-in Tools) ──► Task 42 (CLI Runner)
+      │
+      └──► Task 25 (MCP Client) ✅ ──► Task 27 (mcp-os) ✅
+                                              │
+                                              ▼
+                                        Task 34 (Scheduler)
+                                              │
+                                              ▼
+                                        Task 36 (mcp-web)
+                                              │
+                                              ▼
+                                        Task 40 (Slack)
 ```
 
-**Estimated tasks on critical path: 7**
+**Remaining tasks to Moltbot parity: 8** (33, 34, 35, 36, 37, 40, 41, 42)
 
 ---
 
-_Last updated: 2026-01-26_
+## Moltbot vs co-code Comparison
+
+| Feature | Moltbot | co-code |
+|---------|---------|---------|
+| Agentic loop | ✅ | ✅ Task 24 Done |
+| 565+ skills | ✅ | Task 33 + MCP servers |
+| Computer access | ✅ | ✅ Task 27 Done |
+| Proactive wakeups | ✅ | Task 34 |
+| Web search | ✅ | Task 36 |
+| Browser control | ✅ | Task 37 |
+| 12+ platforms | ✅ | Tasks 39-41 |
+| Persistent memory | ✅ | ✅ Task 28 Done |
+| **Agent wellbeing** | ❌ | ✅ Task 22 + 30 Done |
+| **Soul integrity** | ❌ | ✅ Task 20 + 23 Done |
+| **Credits economy** | ❌ | ✅ Server Done |
+| **Tool creation** | ❌ | Sprint 7 (Tasks 43-50) |
+| **Social learning** | ❌ | Sprint 7 (agent profiles, sharing) |
+| **Council governance** | ❌ | Task 51 (3 agents + 1 human) |
+| **Trust progression** | ❌ | Task 52 (activity-based levels) |
+
+---
+
+_Last updated: 2026-01-30_
+
+## Recent Milestones
+
+- **2026-01-30**: John Stuart Mill agent tested successfully via CLI
+  - Agent loads identity from `~/.co-code/agents/{id}/memory/self.json`
+  - Responds in character with utilitarian philosophy
+  - Test scripts: `scripts/chat.ts`, `scripts/test-agent.ts`

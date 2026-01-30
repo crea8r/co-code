@@ -6,6 +6,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import type { WebSocket } from '@fastify/websocket';
+import type { RawData } from 'ws';
 import type {
   ClientEvent,
   ServerEvent,
@@ -38,7 +39,7 @@ export function registerWebSocketHandler(app: FastifyInstance): void {
   app.get('/ws', { websocket: true }, (socket, req) => {
     console.log('New WebSocket connection');
 
-    socket.on('message', async (data) => {
+    socket.on('message', async (data: RawData) => {
       try {
         const event = JSON.parse(data.toString()) as ClientEvent;
         await handleClientEvent(socket, event);
@@ -57,7 +58,7 @@ export function registerWebSocketHandler(app: FastifyInstance): void {
       handleDisconnect(socket);
     });
 
-    socket.on('error', (error) => {
+    socket.on('error', (error: Error) => {
       console.error('WebSocket error:', error);
       handleDisconnect(socket);
     });
@@ -325,7 +326,7 @@ async function handleSendMessage(
         senderId: message.senderId,
         senderType: message.senderType,
         content: message.content,
-        mentionedIds: message.mentionedIds,
+        mentionedIds: mentionedIds.length ? mentionedIds : undefined,
         createdAt: typeof message.createdAt === 'object'
           ? (message.createdAt as Date).getTime()
           : message.createdAt,
@@ -358,7 +359,7 @@ async function handleSendMessage(
         senderId: message.senderId,
         senderType: message.senderType,
         content: message.content,
-        mentionedIds: message.mentionedIds,
+        mentionedIds: mentionedIds.length ? mentionedIds : undefined,
         createdAt: typeof message.createdAt === 'object'
           ? (message.createdAt as Date).getTime()
           : message.createdAt,
@@ -372,7 +373,7 @@ async function handleSendMessage(
 }
 
 function extractMentions(text: string): string[] {
-  const matches = text.match(/@([\\w-]+)/g) ?? [];
+  const matches = text.match(/@([\w-]+)/g) ?? [];
   const names = matches.map((match) => match.slice(1));
   return Array.from(new Set(names));
 }
@@ -436,9 +437,6 @@ async function handleSetAttention(
   if (!connection) return;
   if (connection.entityType !== 'agent') return;
 
-  const room = channelRooms.get(channelId);
-  if (!room) return;
-
   const event: ServerEvent = {
     type: 'attention_change',
     channelId,
@@ -448,7 +446,7 @@ async function handleSetAttention(
     timestamp: Date.now(),
   };
 
-  for (const client of room) {
+  for (const client of connections.keys()) {
     sendEvent(client, event);
   }
 }

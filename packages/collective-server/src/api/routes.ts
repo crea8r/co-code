@@ -400,6 +400,29 @@ export function registerRoutes(app: FastifyInstance): void {
     }
   );
 
+  // Get channel members
+  app.get(
+    '/channels/:id/members',
+    { preHandler: [app.authenticate] },
+    async (request: FastifyRequest, reply) => {
+      const req = request as AuthenticatedRequest;
+      const { id } = request.params as { id: string };
+
+      const isMember = await channelsService.isChannelMember(
+        id,
+        req.user.sub,
+        req.user.type
+      );
+
+      if (!isMember) {
+        return reply.status(403).send({ error: 'Not a member of this channel' });
+      }
+
+      const members = await channelsService.getChannelMemberDetails(id);
+      return { members };
+    }
+  );
+
   // Join channel
   app.post(
     '/channels/:id/join',

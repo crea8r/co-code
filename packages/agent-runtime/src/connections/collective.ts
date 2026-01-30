@@ -31,7 +31,12 @@ export interface CollectiveConnectionEvents {
   onConnected?: () => void;
   onDisconnected?: () => void;
   onMessage?: (message: Message) => void;
-  onMention?: (event: { message: Message; channelId: string }) => void;
+  onMention?: (event: {
+    message: Message;
+    channelId: string;
+    mentionedEntityId: string;
+    mentionedEntityType: EntityType;
+  }) => void;
   onPresenceChange?: (
     entityId: string,
     status: PresenceStatus
@@ -133,6 +138,8 @@ export class CollectiveConnection {
         this.events.onMention?.({
           message: event.message,
           channelId: event.message.channelId,
+          mentionedEntityId: event.mentionedEntityId,
+          mentionedEntityType: event.mentionedEntityType,
         });
         break;
 

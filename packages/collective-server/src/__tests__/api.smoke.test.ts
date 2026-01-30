@@ -4,17 +4,45 @@ import { createServer } from '../index.js';
 
 const dbEnv = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
 const hasDbEnv = dbEnv.every((key) => process.env[key] && process.env[key] !== '');
+const databaseUrl = process.env.DATABASE_URL;
+
+const parseDatabaseUrl = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname,
+      port: parsed.port ? parseInt(parsed.port, 10) : 5432,
+      database: parsed.pathname.replace('/', '') || 'cocode',
+      user: decodeURIComponent(parsed.username),
+      password: decodeURIComponent(parsed.password),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const parsedDatabaseUrl = databaseUrl ? parseDatabaseUrl(databaseUrl) : null;
+const hasDatabaseUrl = Boolean(parsedDatabaseUrl);
 
 let canConnect = false;
-if (hasDbEnv) {
+if (hasDbEnv || hasDatabaseUrl) {
   try {
     const { Client } = await import('pg');
+    const dbConfig = parsedDatabaseUrl
+      ? parsedDatabaseUrl
+      : {
+          host: process.env.DB_HOST || 'localhost',
+          port: parseInt(process.env.DB_PORT || '5432', 10),
+          database: process.env.DB_NAME || 'cocode',
+          user: process.env.DB_USER || 'postgres',
+          password: process.env.DB_PASSWORD || 'postgres',
+        };
     const client = new Client({
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
+      host: dbConfig.host,
+      port: dbConfig.port,
+      database: dbConfig.database,
+      user: dbConfig.user,
+      password: dbConfig.password,
       connectionTimeoutMillis: 500,
     });
     await client.connect();
@@ -36,11 +64,15 @@ maybeDescribe('API smoke', () => {
       host: '127.0.0.1',
       jwtSecret: process.env.JWT_SECRET || 'dev-secret',
       database: {
-        host: process.env.DB_HOST || 'localhost',
-        port: parseInt(process.env.DB_PORT || '5432', 10),
-        database: process.env.DB_NAME || 'cocode',
-        user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'postgres',
+        host: process.env.DB_HOST || parsedDatabaseUrl?.host || 'localhost',
+        port: parseInt(
+          process.env.DB_PORT || String(parsedDatabaseUrl?.port || '5432'),
+          10
+        ),
+        database: process.env.DB_NAME || parsedDatabaseUrl?.database || 'cocode',
+        user: process.env.DB_USER || parsedDatabaseUrl?.user || 'postgres',
+        password:
+          process.env.DB_PASSWORD || parsedDatabaseUrl?.password || 'postgres',
         ssl: process.env.DB_SSL === 'true',
       },
       cors: {

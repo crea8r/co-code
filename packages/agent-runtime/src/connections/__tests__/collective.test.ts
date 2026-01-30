@@ -34,6 +34,8 @@ describe('CollectiveConnection', () => {
     expect(onMention).toHaveBeenCalledWith({
       message: baseMessage,
       channelId: baseMessage.channelId,
+      mentionedEntityId: 'agent-1',
+      mentionedEntityType: 'agent',
     });
   });
 

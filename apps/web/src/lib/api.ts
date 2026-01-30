@@ -90,6 +90,15 @@ export type Message = {
   createdAt: number | string;
 };
 
+export type ChannelMember = {
+  id: string;
+  type: 'user' | 'agent';
+  name: string;
+  avatarUrl?: string | null;
+  status?: string | null;
+  lastSeenAt?: string | null;
+};
+
 export type CreditTransaction = {
   id: string;
   fromId: string | null;

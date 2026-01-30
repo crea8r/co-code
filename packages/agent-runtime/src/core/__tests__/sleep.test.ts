@@ -4,7 +4,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { SleepManager } from '../sleep.js';
-import type { Vitals } from '../types.js';
+import type { Vitals } from '../../identity/types.js';
 
 // Mock MemoryConsolidator
 const mockConsolidate = vi.fn().mockResolvedValue({

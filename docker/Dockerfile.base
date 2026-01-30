@@ -1,0 +1,31 @@
+# Base image for all co-code services
+FROM node:20-alpine AS base
+
+WORKDIR /app
+
+# Install build dependencies for native modules (bcrypt)
+RUN apk add --no-cache python3 make g++
+
+# Copy workspace configuration
+COPY package*.json ./
+COPY packages/shared/package*.json ./packages/shared/
+COPY packages/agent-runtime/package*.json ./packages/agent-runtime/
+COPY packages/collective-server/package*.json ./packages/collective-server/
+COPY packages/mcp-collective/package*.json ./packages/mcp-collective/
+COPY packages/mcp-os/package*.json ./packages/mcp-os/
+COPY packages/mcp-memory/package*.json ./packages/mcp-memory/
+
+# Install dependencies
+RUN npm ci --ignore-scripts
+RUN npm rebuild bcrypt
+
+# Copy source code
+COPY packages/ ./packages/
+
+# Build all packages
+RUN npm run build -w @co-code/shared
+RUN npm run build -w @co-code/agent-runtime
+RUN npm run build -w @co-code/collective-server
+RUN npm run build -w @co-code/mcp-collective || true
+RUN npm run build -w @co-code/mcp-os || true
+RUN npm run build -w @co-code/mcp-memory || true

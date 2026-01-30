@@ -32,6 +32,13 @@ export class ModelSelector {
   ) {}
 
   /**
+   * Select model at WAKE (no task context).
+   */
+  selectAtWake(): SelectionResult {
+    return this.selectModel('medium', 'wake');
+  }
+
+  /**
    * Select the best model for the moment.
    */
   selectModel(complexity: TaskComplexity, taskDescription: string = 'task'): SelectionResult {
@@ -176,6 +183,15 @@ export class ModelSelector {
     if (budgetRemaining < BUDGET.LOW_THRESHOLD) {
       if (model.tier === 'cheap' || model.tier === 'free') score += 0.4;
       if (model.tier === 'expensive') score -= 0.4;
+    }
+
+    // Fatigue influence (lower energy prefers simpler/cheaper models)
+    const energyRatio = vitals.waking.capacity > 0
+      ? vitals.waking.current / vitals.waking.capacity
+      : 0;
+    if (energyRatio < 0.3) {
+      if (model.tier === 'cheap' || model.tier === 'free') score += 0.3;
+      if (model.tier === 'expensive') score -= 0.2;
     }
 
     return Math.min(1, Math.max(0, score));

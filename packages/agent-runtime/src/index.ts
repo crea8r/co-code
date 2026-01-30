@@ -19,5 +19,9 @@ export * from './adapters/index.js';
 // Connections
 export * from './connections/index.js';
 
+// Tooling helpers
+export * from './tools/installer.js';
+export * from './tools/pipeline.js';
+
 // Note: Platform-specific code should be imported directly:
 // import { createAgent } from '@co-code/agent-runtime/platforms/node';

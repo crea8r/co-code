@@ -147,9 +147,22 @@ async function startAgent(): Promise<void> {
   console.log(`Starting agent ${agentId}...`);
 
   try {
+    const storage = new NodeStorageAdapter(agentId);
+    let collectiveUrl: string | undefined;
+    try {
+      const configRaw = await storage.read('identity/config');
+      if (configRaw) {
+        const config = JSON.parse(configRaw) as { collectiveUrl?: string };
+        collectiveUrl = config.collectiveUrl;
+      }
+    } catch {
+      // ignore missing config
+    }
+
     const { agent } = await createAgent({
       agentId,
       llm: llmConfig,
+      collectiveUrl,
     });
 
     const state = agent.getState();

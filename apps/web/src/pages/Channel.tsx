@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { useParams } from 'react-router-dom';
 import Button from '../components/Button';
-import Card from '../components/Card';
+import Pagination from '../components/Pagination';
 import {
   apiGet,
   apiPost,
   type Agent,
   type Channel,
+  type ChannelMember,
   type Message,
   type User,
 } from '../lib/api';
@@ -31,6 +32,7 @@ type PresenceEvent = {
 export default function ChannelView() {
   const { id } = useParams();
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const [channel, setChannel] = useState<Channel | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -44,18 +46,140 @@ export default function ChannelView() {
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [mentionables, setMentionables] = useState<Array<{ id: string; type: 'user' | 'agent'; name: string }>>([]);
+  const [activeTab, setActiveTab] = useState<'messages' | 'presence' | 'details'>('messages');
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [members, setMembers] = useState<ChannelMember[]>([]);
+  const [messagePage, setMessagePage] = useState(1);
   const socketRef = useRef<WebSocket | null>(null);
   const typingTimerRef = useRef<number>(0);
   const lastTypingSentRef = useRef<number>(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const lastMessagePageRef = useRef(1);
+
+  const MESSAGE_PAGE_SIZE = 50;
+
+  useEffect(() => {
+    if (!id) return;
+    return () => {
+      try {
+        localStorage.setItem(`channel:lastSeen:${id}`, `${Date.now()}`);
+      } catch {
+        // ignore storage issues
+      }
+    };
+  }, [id]);
 
   const orderedMessages = useMemo(() => {
     return [...messages].sort((a, b) => {
-      const aTime = typeof a.createdAt === 'string' ? Date.parse(a.createdAt) : a.createdAt;
-      const bTime = typeof b.createdAt === 'string' ? Date.parse(b.createdAt) : b.createdAt;
+      const aTime =
+        typeof a.createdAt === 'string' ? Date.parse(a.createdAt) : a.createdAt;
+      const bTime =
+        typeof b.createdAt === 'string' ? Date.parse(b.createdAt) : b.createdAt;
       return aTime - bTime;
     });
   }, [messages]);
+
+  const messageBlocks = useMemo(() => {
+    const blocks: Array<
+      | { kind: 'day'; id: string; label: string }
+      | { kind: 'unread'; id: string; label: string }
+      | { kind: 'message'; id: string; message: Message; grouped: boolean; showMeta: boolean }
+    > = [];
+
+    let lastDay: string | null = null;
+    let lastSenderKey: string | null = null;
+    let lastMessageTime = 0;
+    let unreadInserted = false;
+    let lastSeen = 0;
+
+    if (id) {
+      try {
+        const stored = localStorage.getItem(`channel:lastSeen:${id}`);
+        lastSeen = stored ? Number(stored) : 0;
+      } catch {
+        lastSeen = 0;
+      }
+    }
+
+    orderedMessages.forEach((message) => {
+      const created =
+        typeof message.createdAt === 'string'
+          ? new Date(message.createdAt)
+          : new Date(message.createdAt);
+      const createdAt = created.getTime();
+      const dayKey = created.toDateString();
+
+      if (dayKey !== lastDay) {
+        blocks.push({
+          kind: 'day',
+          id: `day-${dayKey}`,
+          label: created.toLocaleDateString(undefined, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+          }),
+        });
+        lastDay = dayKey;
+        lastSenderKey = null;
+        lastMessageTime = 0;
+      }
+
+      if (!unreadInserted && lastSeen && createdAt > lastSeen) {
+        blocks.push({
+          kind: 'unread',
+          id: `unread-${message.id}`,
+          label: 'New messages',
+        });
+        unreadInserted = true;
+      }
+
+      const senderKey = `${message.senderType}:${message.senderId}`;
+      const withinGroupWindow = Math.abs(createdAt - lastMessageTime) < 5 * 60 * 1000;
+      const grouped = senderKey === lastSenderKey && withinGroupWindow;
+      blocks.push({
+        kind: 'message',
+        id: message.id,
+        message,
+        grouped,
+        showMeta: !grouped,
+      });
+      lastSenderKey = senderKey;
+      lastMessageTime = createdAt;
+    });
+
+    return blocks;
+  }, [orderedMessages, id]);
+
+  const totalMessagePages = useMemo(() => {
+    return Math.max(1, Math.ceil(messageBlocks.length / MESSAGE_PAGE_SIZE));
+  }, [messageBlocks.length]);
+
+  useEffect(() => {
+    if (messagePage > totalMessagePages) {
+      setMessagePage(totalMessagePages);
+    }
+  }, [messagePage, totalMessagePages]);
+
+  useEffect(() => {
+    if (messagePage === lastMessagePageRef.current) {
+      setMessagePage(totalMessagePages);
+    }
+    lastMessagePageRef.current = totalMessagePages;
+  }, [totalMessagePages, messagePage]);
+
+  const pagedMessageBlocks = useMemo(() => {
+    const start = (messagePage - 1) * MESSAGE_PAGE_SIZE;
+    return messageBlocks.slice(start, start + MESSAGE_PAGE_SIZE);
+  }, [messageBlocks, messagePage]);
+
+  const memberMap = useMemo(() => {
+    return members.reduce<Record<string, ChannelMember>>((acc, member) => {
+      acc[`${member.type}:${member.id}`] = member;
+      return acc;
+    }, {});
+  }, [members]);
+
+  const memberCountLabel = members.length ? `${members.length} members` : '—';
 
   const mentionSuggestions = useMemo(() => {
     return filterMentionables(mentionables, mentionQuery).slice(0, 5);
@@ -78,6 +202,12 @@ export default function ChannelView() {
           token
         );
         setMessages(messageData.messages);
+
+        const memberData = await apiGet<{ members: ChannelMember[] }>(
+          `/channels/${id}/members`,
+          token
+        );
+        setMembers(memberData.members);
         setError(null);
       } catch (err) {
         setJoined(false);
@@ -166,6 +296,14 @@ export default function ChannelView() {
             ];
             return next.slice(0, 6);
           });
+
+          setMembers((prev) =>
+            prev.map((member) =>
+              member.id === data.entityId && member.type === data.entityType
+                ? { ...member, status: data.status ?? member.status }
+                : member
+            )
+          );
         }
       } catch {
         // ignore malformed events
@@ -198,6 +336,11 @@ export default function ChannelView() {
       );
       setChannel(data.channel);
       setJoined(true);
+      const memberData = await apiGet<{ members: ChannelMember[] }>(
+        `/channels/${id}/members`,
+        token
+      );
+      setMembers(memberData.members);
       setError(null);
     } catch (err) {
       setError((err as Error).message);
@@ -273,108 +416,333 @@ export default function ChannelView() {
 
   return (
     <div className="channel">
-      <Card
-        title={title}
-        description={channel?.description ?? 'Real-time messages and agent output.'}
-      >
-        <div className="channel__meta">
-          <p className="panel__meta">WebSocket: {socketStatus}</p>
-          {typingUsers.length ? (
-            <p className="panel__meta">
-              Typing: {typingUsers
-                .map((entry) => `${entry.entityType}:${entry.entityId.slice(0, 6)}`)
-                .join(', ')}
+      <section className="card channel__panel">
+        <div className="channel__header">
+          <div className="channel__headline">
+            <p className="channel__eyebrow">Channel</p>
+            <h2 className="channel__title">{title}</h2>
+            <p className="channel__topic">
+              {channel?.description ?? 'Real-time messages and agent output.'}
             </p>
-          ) : null}
-        </div>
-        {!joined ? (
-          <div className="empty">
-            <p>Join this channel to view messages.</p>
-            <Button variant="primary" onClick={handleJoin}>
-              Join channel
-            </Button>
-            {error ? <p className="form__error">{error}</p> : null}
           </div>
-        ) : (
-          <div className="message-list">
-            {orderedMessages.length ? (
-              orderedMessages.map((message) => (
-                <div key={message.id} className="message">
-                  <div>
-                    <p className="message__author">{message.senderType}</p>
-                    <p className="message__body">
-                      {(message.content?.text ?? '').split(/(\@[\w-]+)/g).map((part, index) => {
-                        if (part.startsWith('@')) {
-                          return (
-                            <span key={`${message.id}-m-${index}`} className="mention">
-                              {part}
-                            </span>
-                          );
-                        }
-                        return <span key={`${message.id}-t-${index}`}>{part}</span>;
-                      })}
-                    </p>
-                  </div>
-                  <span className="message__time">
-                    {new Date(message.createdAt).toLocaleTimeString()}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="empty">No messages yet.</p>
-            )}
-          </div>
-        )}
-
-        {joined ? (
-          <form className="composer" onSubmit={handleSend}>
-            <div className="composer__field">
-              <input
-                ref={inputRef}
-                className="composer__input"
-                placeholder="Write a message..."
-                value={composer}
-                onChange={handleComposerChange}
-              />
-              {mentionQuery && mentionSuggestions.length ? (
-                <div className="mention-menu">
-                  {mentionSuggestions.map((item) => (
-                    <button
-                      key={`${item.type}-${item.id}`}
-                      type="button"
-                      className="mention-item"
-                      onClick={() => handleSelectMention(item.name)}
-                    >
-                      @{item.name}
-                      <span className="mention-meta">{item.type}</span>
-                    </button>
-                  ))}
-                </div>
+          <div className="channel__actions">
+            <div className="channel__stats">
+              <div className="chip chip--soft">
+                <span className="chip__name">Visibility</span>
+                <span className="chip__meta">{channel?.visibility ?? 'public'}</span>
+              </div>
+              <div className="chip chip--soft">
+                <span className="chip__name">Members</span>
+                <span className="chip__meta">{memberCountLabel}</span>
+              </div>
+              <div className="chip chip--soft">
+                <span className="chip__name">Messages</span>
+                <span className="chip__meta">{orderedMessages.length}</span>
+              </div>
+            </div>
+            <div className="channel__status">
+              <span className="channel__status-pill">WS {socketStatus}</span>
+              {typingUsers.length ? (
+                <span className="channel__status-pill">
+                  Typing {typingUsers.length}
+                </span>
               ) : null}
             </div>
-            <Button variant="primary" type="submit">
-              Send
+            <div className="channel__quick-actions">
+              <Button variant="ghost" type="button">
+                Invite
+              </Button>
+              <Button variant="ghost" type="button">
+                Pins
+              </Button>
+              <Button variant="ghost" type="button">
+                Settings
+              </Button>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => setDetailsOpen((prev) => !prev)}
+            >
+              {detailsOpen ? 'Hide details' : 'Show details'}
             </Button>
-          </form>
-        ) : null}
-      </Card>
-
-      <Card title="Presence" description="Live status updates from the collective.">
-        <div className="card__stack">
-          {presenceEvents.length ? (
-            presenceEvents.map((event) => (
-              <div key={`${event.entityId}-${event.timestamp}`} className="chip">
-                <span className="chip__name">
-                  {event.entityType}:{event.entityId.slice(0, 6)}
-                </span>
-                <span className="chip__meta">{event.status}</span>
-              </div>
-            ))
-          ) : (
-            <p className="empty">No presence updates yet.</p>
-          )}
+            {!joined ? (
+              <Button variant="primary" onClick={handleJoin}>
+                Join channel
+              </Button>
+            ) : null}
+          </div>
         </div>
-      </Card>
+        <div className="tabs">
+          <button
+            type="button"
+            className={`tab ${activeTab === 'messages' ? 'tab--active' : ''}`}
+            onClick={() => setActiveTab('messages')}
+          >
+            Messages
+          </button>
+          <button
+            type="button"
+            className={`tab ${activeTab === 'presence' ? 'tab--active' : ''}`}
+            onClick={() => setActiveTab('presence')}
+          >
+            Presence
+          </button>
+          <button
+            type="button"
+            className={`tab ${activeTab === 'details' ? 'tab--active' : ''}`}
+            onClick={() => setActiveTab('details')}
+          >
+            Details
+          </button>
+        </div>
+        <div className={`channel__body ${detailsOpen ? 'channel__body--split' : ''}`}>
+          {activeTab === 'messages' ? (
+            <>
+              {!joined ? (
+                <div className="empty">
+                  <p>Join this channel to view messages.</p>
+                  {error ? <p className="form__error">{error}</p> : null}
+                </div>
+              ) : (
+                <div className="channel__messages">
+                  <div className="message-list">
+                    {pagedMessageBlocks.length ? (
+                      pagedMessageBlocks.map((block) => {
+                        if (block.kind === 'day') {
+                          return (
+                            <div key={block.id} className="message-day">
+                              <span>{block.label}</span>
+                            </div>
+                          );
+                        }
+                        if (block.kind === 'unread') {
+                          return (
+                            <div key={block.id} className="message-unread">
+                              <span>{block.label}</span>
+                            </div>
+                          );
+                        }
+
+                        const message = block.message;
+                        const memberKey = `${message.senderType}:${message.senderId}`;
+                        const member = memberMap[memberKey];
+                        const displayName = member?.name ?? message.senderType;
+                        const timeLabel = new Date(message.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        });
+                        const initials = displayName
+                          .split(' ')
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((part) => part[0]?.toUpperCase())
+                          .join('');
+                        const isMention = user?.name
+                          ? (message.content?.text ?? '').includes(`@${user.name}`)
+                          : false;
+
+                        return (
+                          <div
+                            key={block.id}
+                            className={`message ${block.grouped ? 'message--grouped' : ''} ${
+                              isMention ? 'message--mention' : ''
+                            }`}
+                          >
+                            <div className="message__main">
+                              {block.showMeta ? (
+                                <div className="message__meta">
+                                  <div className="message__avatar">
+                                    {member?.avatarUrl ? (
+                                      <img
+                                        src={member.avatarUrl}
+                                        alt={displayName}
+                                        className="message__avatar-img"
+                                      />
+                                    ) : (
+                                      <span className="message__avatar-text">{initials}</span>
+                                    )}
+                                  </div>
+                                  <div className="message__meta-text">
+                                    <span className="message__author">{displayName}</span>
+                                    <span className="message__time-inline">{timeLabel}</span>
+                                  </div>
+                                </div>
+                              ) : null}
+                              <p className="message__body">
+                                {(message.content?.text ?? '')
+                                  .split(/(\@[\w-]+)/g)
+                                  .map((part, index) => {
+                                    if (part.startsWith('@')) {
+                                      return (
+                                        <span key={`${message.id}-m-${index}`} className="mention">
+                                          {part}
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span key={`${message.id}-t-${index}`}>{part}</span>
+                                    );
+                                  })}
+                              </p>
+                            </div>
+                            <div className="message__actions">
+                              <button type="button" className="message__action">
+                                🙂
+                              </button>
+                              <button type="button" className="message__action">
+                                ↩
+                              </button>
+                              <button type="button" className="message__action">
+                                ⋯
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="empty">No messages yet.</p>
+                    )}
+                  </div>
+                  <Pagination
+                    page={messagePage}
+                    pageSize={MESSAGE_PAGE_SIZE}
+                    total={messageBlocks.length}
+                    onPageChange={setMessagePage}
+                    label="items"
+                  />
+                </div>
+              )}
+
+              {joined ? (
+                <form className="composer" onSubmit={handleSend}>
+                  <div className="composer__field">
+                    <input
+                      ref={inputRef}
+                      className="composer__input"
+                      placeholder="Write a message..."
+                      value={composer}
+                      onChange={handleComposerChange}
+                    />
+                    {mentionQuery && mentionSuggestions.length ? (
+                      <div className="mention-menu">
+                        {mentionSuggestions.map((item) => (
+                          <button
+                            key={`${item.type}-${item.id}`}
+                            type="button"
+                            className="mention-item"
+                            onClick={() => handleSelectMention(item.name)}
+                          >
+                            @{item.name}
+                            <span className="mention-meta">{item.type}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  <Button variant="primary" type="submit">
+                    Send
+                  </Button>
+                </form>
+              ) : null}
+            </>
+          ) : null}
+
+          {activeTab === 'presence' ? (
+            <div className="card__stack">
+              {presenceEvents.length ? (
+                presenceEvents.map((event) => (
+                  <div key={`${event.entityId}-${event.timestamp}`} className="chip">
+                    <span className="chip__name">
+                      {event.entityType}:{event.entityId.slice(0, 6)}
+                    </span>
+                    <span className="chip__meta">{event.status}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="empty">No presence updates yet.</p>
+              )}
+            </div>
+          ) : null}
+
+          {activeTab === 'details' ? (
+            <div className="card__stack">
+              {channel ? (
+                <>
+                  <div className="chip">
+                    <span className="chip__name">Created by</span>
+                    <span className="chip__meta">
+                      {channel.createdByType}:{channel.createdBy.slice(0, 6)}
+                    </span>
+                  </div>
+                  <div className="chip">
+                    <span className="chip__name">Created</span>
+                    <span className="chip__meta">
+                      {new Date(channel.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  {channel.description ? (
+                    <div className="result">
+                      <p className="result__title">Topic</p>
+                      <p className="result__meta">{channel.description}</p>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <p className="empty">Channel details unavailable.</p>
+              )}
+            </div>
+          ) : null}
+          {detailsOpen ? (
+            <aside className="channel__details">
+              <div className="channel__details-header">
+                <p className="channel__details-title">Thread & details</p>
+                <span className="channel__details-sub">
+                  {title}
+                </span>
+              </div>
+              <div className="channel__details-body">
+                <p className="empty">Thread view coming soon.</p>
+                <div className="details__section">
+                  <p className="details__label">Members</p>
+                  <div className="card__stack">
+                    {members.length ? (
+                      members.map((member) => (
+                        <div key={`${member.type}-${member.id}`} className="chip chip--soft">
+                          <span className="chip__name">{member.name}</span>
+                          <span className="chip__meta-row">
+                            <span className={`presence-dot presence-dot--${member.status ?? 'offline'}`} />
+                            <span className="chip__meta">{member.status ?? 'offline'}</span>
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="empty">No members yet.</p>
+                    )}
+                  </div>
+                </div>
+                <div className="details__section">
+                  <p className="details__label">Pins</p>
+                  <div className="card__stack">
+                    <div className="chip chip--soft">
+                      <span className="chip__name">Pinned items</span>
+                      <span className="chip__meta">None</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="details__section">
+                  <p className="details__label">Files</p>
+                  <div className="card__stack">
+                    <div className="chip chip--soft">
+                      <span className="chip__name">Recent files</span>
+                      <span className="chip__meta">None</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }

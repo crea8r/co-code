@@ -49,6 +49,10 @@ export class NodeRuntimeAdapter implements RuntimeAdapter {
     process.exit(0);
   }
 
+  async shutdown(): Promise<void> {
+    await this.handleShutdown();
+  }
+
   getPlatform(): Platform {
     return 'node';
   }

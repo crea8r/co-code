@@ -10,3 +10,5 @@ export * from './identity/index.js';
 export * from './memory/index.js';
 export * from './llm/index.js';
 export * from './curiosity/index.js';
+export * from './agentic/loop.js';
+export * from './vitals/stress.js';

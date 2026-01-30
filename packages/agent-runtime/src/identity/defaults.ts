@@ -111,7 +111,7 @@ export const DEFAULT_BUDGET_ALLOCATION: BudgetAllocation = {
 };
 
 export const DEFAULT_BUDGET: Budget = {
-  totalBalance: 0,
+  totalBalance: 100.0,
   dailyLimit: 5.0,
   monthlyLimit: 100.0,
   spentToday: 0,

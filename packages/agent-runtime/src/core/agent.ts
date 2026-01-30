@@ -16,9 +16,22 @@ import type { LLMProvider, LLMConfig } from './llm/provider.js';
 import { AnthropicProvider } from './llm/anthropic.js';
 import { OpenAIProvider } from './llm/openai.js';
 import { ModelSelector } from './llm/selector.js';
-import { ModelSelector } from './llm/selector.js';
 import { SleepManager } from './sleep.js';
+import { runAgenticLoop } from './agentic/loop.js';
 import type { Tool } from './llm/provider.js';
+import {
+  DEFAULT_SELF,
+  DEFAULT_RELATIONSHIPS,
+  DEFAULT_PROVIDERS,
+  generateBirthTraits,
+} from '../identity/defaults.js';
+import type { AgentLoadedState, Vitals, Budget, Providers } from '../identity/types.js';
+import { IdentityLoader } from '../identity/loader.js';
+import {
+  appendVitalsHistoryYaml,
+  buildVitalsCycle,
+  saveVitalsYaml,
+} from '../vitals/file.js';
 import {
   generateKeyPair,
   sign,
@@ -36,6 +49,10 @@ export interface AgentConfig {
   agentId?: string;
   /** LLM configuration */
   llm: LLMConfig;
+  /** Optional path to identity folder (for YAML-based shell) */
+  agentPath?: string;
+  /** Sleep warning callback */
+  onSleepWarning?: (level: 'warn' | 'critical', vitals: Vitals) => void;
   /** Collective server URL */
   collectiveUrl?: string;
   /** Consolidation interval (ms) */
@@ -64,6 +81,8 @@ export class Agent {
   private curiosity: CuriosityExplorer | null = null;
   private sleepManager: SleepManager | null = null;
   private selector: ModelSelector | null = null;
+  private activeModel: string | null = null;
+  private modelUsage: Record<string, number> = {};
   private llm: LLMProvider;
   private state: AgentState = {
     status: 'offline',
@@ -134,11 +153,35 @@ export class Agent {
 
     // Initialize selector
     const budget = await this.memory.getFinancialBudget();
-    this.selector = new ModelSelector(this.config.llm, budget);
+    const vitals = await this.memory.getVitals();
+    let selectorState: AgentLoadedState = {
+      agentPath: '',
+      soul: {
+        birthTraits: generateBirthTraits(),
+        integritySignature: '',
+      },
+      self: DEFAULT_SELF,
+      vitals,
+      budget,
+      providers: DEFAULT_PROVIDERS,
+      relationships: DEFAULT_RELATIONSHIPS,
+      recentExperiences: [],
+      memorySummaries: [],
+    };
+
+    if (this.config.agentPath) {
+      const loader = new IdentityLoader(this.config.agentPath);
+      selectorState = await loader.loadAgent();
+      await this.memory.saveVitals(selectorState.vitals);
+      await this.memory.saveFinancialBudget(selectorState.budget);
+      await saveVitalsYaml(this.config.agentPath, selectorState.vitals);
+    }
+    this.selector = new ModelSelector(selectorState, this.llm.listModels());
+    this.activeModel = this.selector.selectAtWake().primary;
 
     // Initialize sleep manager
-    const vitals = await this.memory.getVitals();
     this.sleepManager = new SleepManager(this.consolidator, vitals);
+    this.sleepManager.wakeIfNeeded();
 
     // Schedule consolidation (sleep)
     const consolidationInterval =
@@ -236,6 +279,14 @@ export class Agent {
     return this.memory.getSelf();
   }
 
+  async getBudget(): Promise<Budget> {
+    return this.memory.getFinancialBudget();
+  }
+
+  getProviders(): Providers {
+    return { [this.config.llm.provider]: { model: this.config.llm.model } };
+  }
+
   /**
    * Initialize self memory (first-time setup)
    */
@@ -263,59 +314,108 @@ export class Agent {
     // Record activity (resets idle timer)
     this.curiosity?.recordActivity();
 
-    // 0. Check for sleep
-    if (this.sleepManager?.shouldSleep()) {
-      await this.sleepManager.sleep();
-      return "I'm feeling very tired. I need to rest for a bit to consolidate my memories. I'll be back online soon.";
-    }
-
     // 1. Load context
     const self = await this.memory.getSelf();
     if (!self) throw new Error('Self not initialized');
 
     // 2. Select Model
     // TODO: Analyze complexity dynamically. For now, assume medium.
-    const selection = this.selector?.selectModel('medium');
-    const model = selection?.primary || this.config.llm.model;
+    const model = this.activeModel || this.config.llm.model;
+    this.modelUsage[model] = (this.modelUsage[model] || 0) + 1;
     
+    const identityName =
+      typeof self.identity === 'string' ? self.identity : self.identity.name;
+    const identityDescription =
+      typeof self.identity === 'string' ? '' : self.identity.description || '';
+    const valuesText = Array.isArray((self as any).values?.principles)
+      ? (self as any).values.principles.map((p: string) => `- ${p}`).join('\n')
+      : (self as any).values || '';
+    const tone = (self as any).style?.tone || 'Balanced';
+    const verbosity = (self as any).style?.verbosity || 'balanced';
+
     // 3. Construct System Prompt
-    const systemPrompt = `You are ${self.identity.name}. ${self.identity.description || ''}
+    const systemPrompt = `You are ${identityName}. ${identityDescription}
     
 Values:
-${self.values.principles.map((p) => `- ${p}`).join('\n')}
+${valuesText}
 
 Style:
-Tone: ${self.style.tone}
-Verbosity: ${self.style.verbosity || 'balanced'}
+Tone: ${tone}
+Verbosity: ${verbosity}
 
 You are interacting on the platform. Be helpful but true to your character.`;
 
-    // 4. Agentic Loop (Think -> Act -> Observe)
-    // For this MVP, we'll do a simple single turn with tool support capability
-    
     try {
-      const response = await this.llm.complete({
+      const budget = await this.memory.getFinancialBudget();
+      const vitals = await this.memory.getVitals();
+
+      const loopResult = await runAgenticLoop({
+        llm: this.llm,
         model,
         systemPrompt,
-        messages: [{ role: 'user', content: content.text || '' }],
-        maxTokens: 1024,
-        // tools: [] // TODO: Add tools from MCP
+        userMessage: content.text || '',
+        tools: [], // TODO: Add tools from MCP
+        budget,
+        vitals,
+        sleepManager: this.sleepManager || undefined,
+        onEvent: (event) => {
+          this.runtime.log('debug', 'agentic-loop', event);
+        },
       });
 
       // Update cost/fatigue
-      if (response.cost) {
+      if (loopResult.cost) {
         // Approximate energy drain: 1 token = 0.01 energy units? 
         // Or just map cost directly for now
-        this.sleepManager?.consumeEnergy((response.usage.inputTokens + response.usage.outputTokens) / 10);
+        this.sleepManager?.consumeEnergy(
+          (loopResult.usage.inputTokens + loopResult.usage.outputTokens) / 10
+        );
         
         // Update budget
-        const currentBudget = await this.memory.getFinancialBudget();
-        currentBudget.spentToday += response.cost;
-        currentBudget.spentThisMonth += response.cost;
-        await this.memory.saveFinancialBudget(currentBudget);
+        budget.spentToday += loopResult.cost;
+        budget.spentThisMonth += loopResult.cost;
+        await this.memory.saveFinancialBudget(budget);
       }
 
-      return response.text;
+      if (this.sleepManager?.shouldWarn()) {
+        this.runtime.log('warn', 'Agent approaching sleep threshold');
+        this.config.onSleepWarning?.('warn', vitals);
+      }
+
+      if (this.sleepManager?.shouldCritical()) {
+        this.runtime.log('warn', 'Agent at critical sleep threshold');
+        this.config.onSleepWarning?.('critical', vitals);
+      }
+
+      if (loopResult.status === 'fatigued' || loopResult.status === 'rest') {
+        if (this.sleepManager) {
+          const before = { ...vitals, emotional: { ...vitals.emotional }, waking: { ...vitals.waking } };
+          await this.sleepManager.sleep();
+          if (this.config.agentPath) {
+            const cycle = buildVitalsCycle(before, vitals, this.modelUsage, budget);
+            await appendVitalsHistoryYaml(this.config.agentPath, cycle);
+            await saveVitalsYaml(this.config.agentPath, vitals);
+          }
+          this.activeModel = this.selector?.selectAtWake().primary || this.activeModel;
+        }
+      }
+
+      if (loopResult.status === 'frustrated' && this.sleepManager) {
+        const before = { ...vitals, emotional: { ...vitals.emotional }, waking: { ...vitals.waking } };
+        await this.sleepManager.sleep();
+        if (this.config.agentPath) {
+          const cycle = buildVitalsCycle(before, vitals, this.modelUsage, budget);
+          await appendVitalsHistoryYaml(this.config.agentPath, cycle);
+          await saveVitalsYaml(this.config.agentPath, vitals);
+        }
+        this.activeModel = this.selector?.selectAtWake().primary || this.activeModel;
+      }
+
+      if (this.config.agentPath) {
+        await saveVitalsYaml(this.config.agentPath, vitals);
+      }
+      await this.memory.saveVitals(vitals);
+      return loopResult.responseText;
     } catch (error) {
       this.runtime.log('error', 'LLM completion failed', error);
       return "I'm having trouble thinking clearly right now.";

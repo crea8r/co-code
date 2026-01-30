@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <title>co-code Tasks Dashboard</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel-2: #0b1220;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --accent: #22d3ee;
+        --accent-2: #f59e0b;
+        --danger: #ef4444;
+        --ok: #10b981;
+        --warn: #f59e0b;
+        --border: rgba(148, 163, 184, 0.25);
+        --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        --radius: 16px;
+        --mono: "JetBrains Mono", "Fira Code", "SFMono-Regular", Menlo, Consolas,
+          "Liberation Mono", monospace;
+        --serif: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+        --sans: "Trebuchet MS", "Gill Sans", "Helvetica Neue", Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--sans);
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent 40%),
+          radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.12), transparent 45%),
+          linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
+      }
+
+      header {
+        padding: 28px 32px 18px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(10px);
+      }
+
+      header h1 {
+        margin: 0;
+        font-family: var(--serif);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      header p {
+        margin: 6px 0 0;
+        color: var(--muted);
+      }
+
+      .container {
+        padding: 24px 32px 48px;
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr;
+        gap: 12px;
+        padding: 16px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .toolbar label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .toolbar input,
+      .toolbar select {
+        margin-top: 6px;
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      .toolbar button {
+        margin-top: 22px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: var(--accent);
+        color: #0b1120;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .toolbar .secondary {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .toolbar .file-input {
+        margin-top: 6px;
+      }
+
+      .stats {
+        margin: 18px 0 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .pill strong {
+        color: var(--text);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        padding: 16px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: rgba(17, 24, 39, 0.8);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .card h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .badge {
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid var(--border);
+      }
+
+      .badge.done {
+        color: var(--ok);
+      }
+
+      .badge.review {
+        color: var(--warn);
+      }
+
+      .badge.todo {
+        color: var(--danger);
+      }
+
+      .section-label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .content {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text);
+      }
+
+      .files {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .empty {
+        padding: 40px;
+        text-align: center;
+        color: var(--muted);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+      }
+
+      @media (max-width: 900px) {
+        .toolbar {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 600px) {
+        header {
+          padding: 20px;
+        }
+        .container {
+          padding: 16px 20px 32px;
+        }
+        .toolbar {
+          grid-template-columns: 1fr;
+        }
+        .toolbar button {
+          margin-top: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>co-code Tasks Dashboard</h1>
+      <p>Filter and scan tasks in seconds. Load <code>agents/tasks.md</code> to start.</p>
+    </header>
+
+    <div class="container">
+      <div class="toolbar">
+        <div>
+          <label for="search">Search</label>
+          <input id="search" type="text" placeholder="keyword, task id, title..." />
+        </div>
+        <div>
+          <label for="owner">Owner</label>
+          <select id="owner">
+            <option value="">All owners</option>
+          </select>
+        </div>
+        <div>
+          <label for="status">Status</label>
+          <select id="status">
+            <option value="">All status</option>
+          </select>
+        </div>
+        <div>
+          <label for="sprint">Sprint/Section</label>
+          <select id="sprint">
+            <option value="">All sections</option>
+          </select>
+        </div>
+        <div>
+          <label for="file">Load tasks.md</label>
+          <input id="file" class="file-input" type="file" accept=".md,text/markdown,text/plain" />
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button id="load">Load From File</button>
+            <button id="fetch" class="secondary" type="button">Try Fetch</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+      <div id="grid" class="grid"></div>
+    </div>
+
+    <script>
+      const state = {
+        tasks: [],
+        filtered: [],
+      };
+
+      const elements = {
+        search: document.getElementById("search"),
+        owner: document.getElementById("owner"),
+        status: document.getElementById("status"),
+        sprint: document.getElementById("sprint"),
+        file: document.getElementById("file"),
+        load: document.getElementById("load"),
+        fetch: document.getElementById("fetch"),
+        grid: document.getElementById("grid"),
+        stats: document.getElementById("stats"),
+      };
+
+      function normalizeStatus(raw = "") {
+        const upper = raw.toUpperCase();
+        if (upper.includes("DONE")) return "DONE";
+        if (upper.includes("REVIEW")) return "REVIEW";
+        if (upper.includes("READY")) return "READY";
+        if (upper.includes("TODO")) return "TODO";
+        if (upper.includes("IN PROGRESS")) return "IN PROGRESS";
+        if (upper.includes("BLOCKED")) return "BLOCKED";
+        if (upper.includes("DISCUSS")) return "DISCUSS";
+        if (upper.includes("SPEC")) return "SPEC";
+        return upper.trim() || "UNKNOWN";
+      }
+
+      function extractSection(text, label) {
+        const start = text.indexOf(label);
+        if (start === -1) return "";
+        const slice = text.slice(start + label.length);
+        const endMatch = slice.match(/\n\*\*[^*]+?\*\*:/);
+        if (!endMatch) return slice.trim();
+        return slice.slice(0, endMatch.index).trim();
+      }
+
+      function parseTasks(raw) {
+        const tasks = [];
+        const lines = raw.split("\n");
+        const sectionAtLine = {};
+        let currentSection = "Unsorted";
+        lines.forEach((line, idx) => {
+          if (line.startsWith("## ")) {
+            currentSection = line.replace("## ", "").trim();
+          }
+          sectionAtLine[idx] = currentSection;
+        });
+
+        const taskRegex = /^### Task\s+([0-9]+):\s+(.+)$/gm;
+        const matches = [...raw.matchAll(taskRegex)];
+        for (let i = 0; i < matches.length; i++) {
+          const match = matches[i];
+          const id = match[1];
+          const title = match[2].trim();
+          const start = match.index;
+          const end = i + 1 < matches.length ? matches[i + 1].index : raw.length;
+          const block = raw.slice(start, end);
+          const ownerMatch = block.match(/\*\*Owner\*\*:\s*(.+)/);
+          const statusMatch = block.match(/\*\*Status\*\*:\s*(.+)/);
+          const filesMatch = block.match(/\*\*Files\*\*:\s*(.+)/);
+          const desc = extractSection(block, "**Description**:");
+          const acceptance = extractSection(block, "**Acceptance Criteria**:");
+          const lineIndex = raw.slice(0, start).split("\n").length - 1;
+          const section = sectionAtLine[lineIndex] || "Unsorted";
+
+          tasks.push({
+            id,
+            title,
+            owner: ownerMatch ? ownerMatch[1].trim() : "Unassigned",
+            statusRaw: statusMatch ? statusMatch[1].trim() : "Unknown",
+            status: normalizeStatus(statusMatch ? statusMatch[1] : ""),
+            files: filesMatch ? filesMatch[1].trim() : "",
+            description: desc,
+            acceptance,
+            section,
+            raw: block.trim(),
+          });
+        }
+        return tasks;
+      }
+
+      function renderStats(tasks) {
+        const total = tasks.length;
+        const counts = tasks.reduce((acc, task) => {
+          acc[task.status] = (acc[task.status] || 0) + 1;
+          return acc;
+        }, {});
+        const pills = [
+          `<span class="pill"><strong>${total}</strong> tasks</span>`,
+          ...Object.entries(counts).map(
+            ([status, count]) => `<span class="pill">${status}: <strong>${count}</strong></span>`
+          ),
+        ];
+        elements.stats.innerHTML = pills.join("");
+      }
+
+      function renderTasks(tasks) {
+        if (tasks.length === 0) {
+          elements.grid.innerHTML = `<div class="empty">No tasks match these filters.</div>`;
+          return;
+        }
+        elements.grid.innerHTML = tasks
+          .map((task) => {
+            const badgeClass =
+              task.status === "DONE"
+                ? "done"
+                : task.status === "REVIEW" || task.status === "READY"
+                ? "review"
+                : task.status === "TODO"
+                ? "todo"
+                : "";
+            return `
+              <div class="card">
+                <div class="meta">
+                  <span class="badge ${badgeClass}">${task.status}</span>
+                  <span>Task ${task.id}</span>
+                  <span>${task.owner}</span>
+                </div>
+                <h3>${task.title}</h3>
+                <div class="section-label">${task.section}</div>
+                <div class="content">${task.description || "No description provided."}</div>
+                ${
+                  task.acceptance
+                    ? `<div class="content"><span class="section-label">Acceptance</span><br/>${task.acceptance}</div>`
+                    : ""
+                }
+                ${task.files ? `<div class="files">Files: ${task.files}</div>` : ""}
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function refreshFilters(tasks) {
+        const owners = [...new Set(tasks.map((t) => t.owner))].sort();
+        const statuses = [...new Set(tasks.map((t) => t.status))].sort();
+        const sections = [...new Set(tasks.map((t) => t.section))].sort();
+
+        elements.owner.innerHTML =
+          `<option value="">All owners</option>` +
+          owners.map((o) => `<option value="${o}">${o}</option>`).join("");
+        elements.status.innerHTML =
+          `<option value="">All status</option>` +
+          statuses.map((s) => `<option value="${s}">${s}</option>`).join("");
+        elements.sprint.innerHTML =
+          `<option value="">All sections</option>` +
+          sections.map((s) => `<option value="${s}">${s}</option>`).join("");
+      }
+
+      function applyFilters() {
+        const search = elements.search.value.toLowerCase();
+        const owner = elements.owner.value;
+        const status = elements.status.value;
+        const sprint = elements.sprint.value;
+
+        state.filtered = state.tasks.filter((task) => {
+          if (owner && task.owner !== owner) return false;
+          if (status && task.status !== status) return false;
+          if (sprint && task.section !== sprint) return false;
+          if (search) {
+            const hay = `${task.id} ${task.title} ${task.owner} ${task.status} ${task.description} ${task.acceptance}`.toLowerCase();
+            if (!hay.includes(search)) return false;
+          }
+          return true;
+        });
+
+        renderStats(state.filtered);
+        renderTasks(state.filtered);
+      }
+
+      async function loadFromFile(file) {
+        const text = await file.text();
+        state.tasks = parseTasks(text);
+        refreshFilters(state.tasks);
+        applyFilters();
+      }
+
+      async function fetchTasks() {
+        try {
+          const res = await fetch("../agents/tasks.md");
+          if (!res.ok) throw new Error("Fetch failed");
+          const text = await res.text();
+          state.tasks = parseTasks(text);
+          refreshFilters(state.tasks);
+          applyFilters();
+        } catch (err) {
+          alert("Fetch failed. Use the file picker instead.");
+        }
+      }
+
+      elements.load.addEventListener("click", () => {
+        const file = elements.file.files[0];
+        if (!file) {
+          alert("Select agents/tasks.md first.");
+          return;
+        }
+        loadFromFile(file);
+      });
+
+      elements.fetch.addEventListener("click", fetchTasks);
+      [elements.search, elements.owner, elements.status, elements.sprint].forEach((el) => {
+        el.addEventListener("input", applyFilters);
+      });
+
+      elements.search.addEventListener("change", applyFilters);
+      elements.owner.addEventListener("change", applyFilters);
+      elements.status.addEventListener("change", applyFilters);
+      elements.sprint.addEventListener("change", applyFilters);
+
+      renderStats([]);
+      renderTasks([]);
+    </script>
+  </body>
+</html>

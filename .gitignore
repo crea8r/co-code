@@ -27,3 +27,6 @@ build/
 
 # Local tooling
 .dependencygraph/
+
+# Agent collective configs (contain tokens)
+collective-*.json

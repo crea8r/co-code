@@ -184,6 +184,44 @@ export async function getChannelMembers(
   );
 }
 
+export async function getChannelMemberDetails(
+  channelId: string
+): Promise<
+  Array<{
+    id: string;
+    type: EntityType;
+    name: string;
+    avatarUrl: string | null;
+    status: string | null;
+    lastSeenAt: string | null;
+  }>
+> {
+  return query(
+    `
+      SELECT cm.member_id as id,
+             cm.member_type as type,
+             u.name,
+             u.avatar_url as "avatarUrl",
+             u.status,
+             u.last_seen_at as "lastSeenAt"
+      FROM channel_members cm
+      JOIN users u ON u.id = cm.member_id
+      WHERE cm.channel_id = $1 AND cm.member_type = 'user'
+      UNION ALL
+      SELECT cm.member_id as id,
+             cm.member_type as type,
+             a.name,
+             a.avatar_url as "avatarUrl",
+             a.status,
+             a.last_seen_at as "lastSeenAt"
+      FROM channel_members cm
+      JOIN agents a ON a.id = cm.member_id
+      WHERE cm.channel_id = $1 AND cm.member_type = 'agent'
+    `,
+    [channelId]
+  );
+}
+
 /**
  * Create a message
  */

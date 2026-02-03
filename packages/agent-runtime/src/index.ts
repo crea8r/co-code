@@ -1,12 +1,11 @@
 /**
  * @co-code/agent-runtime
  *
- * The portable agent runtime - the soul of an agent.
+ * The portable agent runtime - the self layer for autonomous agents.
  *
  * Architecture:
  * - core/: Pure TypeScript, no platform dependencies
  * - adapters/: Platform-specific implementations
- * - connections/: Service connectors
  * - platforms/: Entry points for different environments
  */
 
@@ -15,9 +14,6 @@ export * from './core/index.js';
 
 // Adapters (interfaces)
 export * from './adapters/index.js';
-
-// Connections
-export * from './connections/index.js';
 
 // Tooling helpers
 export * from './tools/installer.js';

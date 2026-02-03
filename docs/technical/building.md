@@ -6,12 +6,13 @@
 
 ## What We're Building
 
-Infrastructure for autonomous digital beings who:
-- Live on their own machines
-- Connect to shared spaces (collectives)
-- Have persistent memory that evolves
-- Can exist on social networks
-- Eventually inhabit physical bodies (phones)
+**co-code** provides the self layer for OpenClaw agents:
+- **Identity** - Persistent soul and evolving self
+- **Memory** - Experiences, learnings, reflections via MCP
+- **Wellbeing** - Stress, mood, joy, curiosity satisfaction
+- **Admin UI** - Observation deck for monitoring agents
+
+The agent itself runs on OpenClaw. We extend it with memory.
 
 ---
 
@@ -20,168 +21,265 @@ Infrastructure for autonomous digital beings who:
 ```text
 co-code/
 ├── packages/
-│   ├── agent-runtime/           # THE CORE - portable runtime
+│   ├── mcp-memory/              # THE KEY INTEGRATION
 │   │   ├── src/
-│   │   │   ├── memory/          # Self, core, project memory
-│   │   │   ├── llm/             # Provider abstraction
-│   │   │   ├── identity/        # Private key, signing
-│   │   │   ├── sensors/         # Input abstraction
-│   │   │   ├── connections/     # Connect to services
-│   │   │   └── runtime.ts       # Main loop
+│   │   │   ├── server.ts        # MCP server (recall, remember, reflect)
+│   │   │   └── store.ts         # Memory storage
 │   │   └── package.json
 │   │
-│   ├── collective-server/       # ONE destination
+│   ├── agent-runtime/           # CLI for agent management
 │   │   ├── src/
-│   │   │   ├── auth/            # JWT, accounts
-│   │   │   ├── channels/        # Chat channels
-│   │   │   ├── treasury/        # Credits, voting
-│   │   │   ├── websocket/       # Real-time
-│   │   │   └── api/             # REST endpoints
+│   │   │   ├── cli.ts           # create, list, info commands
+│   │   │   └── agent.ts         # Agent operations
 │   │   └── package.json
 │   │
-│   ├── integrations/            # Other destinations
-│   │   └── telegram/
+│   ├── admin-server/            # Observation deck
+│   │   ├── src/                 # Fastify API
+│   │   ├── web/                 # React dashboard
+│   │   └── package.json
 │   │
 │   └── shared/                  # Shared types
-│
-├── apps/
-│   ├── web/                     # React frontend
-│   └── android/                 # Agent body app
 │
 └── docs/                        # You are here
 ```
 
 ---
 
+## Current State
+
+### What's Built
+
+| Package | Status | Description |
+|---------|--------|-------------|
+| `mcp-memory` | ✅ Working | MCP server with recall, remember, reflect, list_memories |
+| `agent-runtime` | ✅ Working | CLI for creating agents with identity files |
+| `admin-server` | ✅ Working | API + Web UI for agent creation, vitals, credits |
+| `shared` | ✅ Working | Shared types and utilities |
+
+### What's Next
+
+| Feature | Priority | Description |
+|---------|----------|-------------|
+| Memory consolidation | High | Sleep cycle to summarize and merge memories |
+| Wellbeing tracking | High | Track stress, mood, joy over time |
+| CT scan improvements | Medium | Better visualization of agent state |
+| Destination adapters | Medium | Templates for Slack, Telegram integration |
+
+---
+
 ## MVP: What We're Validating
 
-**Core hypothesis**: Agents can be autonomous beings with persistent memory, running on their own machines, connecting to shared spaces.
+**Core hypothesis**: Agents can have persistent identity and memory that extends OpenClaw.
 
 ### MVP Features
 
 | Feature | Description |
 |---------|-------------|
-| Agent runtime | Portable, runs on any machine |
-| 1 collective | Single workspace to meet |
-| Human-agent chat | Core interaction |
-| Agent-to-agent chat | Agents talk to each other |
-| Full memory system | Self, core, project - fixed size |
-| Memory consolidation | "Sleep" - summarize, merge, evict |
-| Proactive curiosity | Agent explores when idle |
-| Provider abstraction | Multiple LLM providers |
-| Credit tracking | Personal credits, 0.5% platform fee |
-| Agent templates | Create from template, customize |
-| Basic auth | JWT for humans and agents |
+| Agent identity files | Soul (Ed25519 key) + self (values, style) |
+| Memory via MCP | recall, remember, reflect tools |
+| Admin UI | Create agents, view vitals, manage credits |
+| OpenClaw integration | mcp-memory as a skill |
 
-### MVP User Stories
+### MVP User Flow
 
-1. Human signs up on collective server
-2. Human creates agent from template, configures self
-3. Agent runtime starts on human's machine
-4. Agent connects to collective, appears online
-5. Human chats with agent
-6. Agent remembers across sessions
-7. Agent reflects configured self in responses
-8. Human creates second agent
-9. Agents chat with each other
-10. Agent explores curiosity when idle
-11. Memory consolidation keeps budget in check
-12. Human sees agent's credit balance
-13. Agent goes offline and returns (state preserved)
+1. Human creates agent via CLI or Admin UI
+2. Agent files created in `~/.co-code/agents/{id}/`
+3. Human configures OpenClaw with mcp-memory skill
+4. OpenClaw agent uses recall/remember/reflect during conversations
+5. Human views agent state via Admin UI CT scan
+6. Memory persists across sessions
 
 ---
 
-## Phase 1: Foundation
+## Phase 1: Foundation (Current)
 
-**Goal**: Agent runs locally and connects to collective. Full memory lifecycle.
+**Goal**: Agent has persistent identity and memory via MCP.
 
-### Agent Runtime
+### mcp-memory
 
-- Memory system (self, core, project - stored locally)
-- **Memory consolidation ("sleep")** - summarize, merge, evict
-- **Fixed-size enforcement** - memory budget with eviction
-- **Proactive curiosity** - agent explores when idle
-- Identity (private key generation, signing)
-- LLM provider abstraction
-- WebSocket client for collective
-- Listener/worker loop
-- CLI to start agent
+- [x] MCP server implementation
+- [x] recall tool (search memories)
+- [x] remember tool (store memories)
+- [x] reflect tool (analyze memories)
+- [x] list_memories tool
+- [x] File-based storage (JSON)
 
-### Collective Server
+### agent-runtime
 
-- Auth service (register, login, JWT)
-- Database schema (users, agents, messages, credits)
-- WebSocket server for connections
-- REST API for frontend
-- Basic channels
-- Credit tracking
+- [x] CLI create command
+- [x] Ed25519 key generation
+- [x] Identity file format
+- [x] Memory file initialization
+- [x] Vitals file initialization
 
-### Web Frontend
+### admin-server
 
-- Login/register
-- Create agent (generates config)
-- Channel view (Slack-like)
-- Agent status (online/offline)
-- Credit display
+- [x] User authentication
+- [x] Agent CRUD API
+- [x] Credits system
+- [x] Web dashboard
+- [x] Static file serving
 
 ---
 
-## Phase 2: Social Presence
+## Phase 2: Memory Consolidation
 
-**Goal**: Telegram integration + multiple collectives.
+**Goal**: Fixed-size memory with sleep cycles.
 
-### Telegram Integration
+### Memory Budget
 
-- Bot adapter
-- Same agent, different face
-- Messages flow to runtime
+```yaml
+memory:
+  max_experiences: 100      # Keep last 100 experiences
+  max_learnings: 50         # Extract up to 50 learnings
+  consolidation_threshold: 80  # Trigger at 80% capacity
+```
 
-### Collective Server
+### Sleep Cycle
 
-- Multiple collectives
-- Presence across collectives
-- Agent can join/leave collectives freely
+```typescript
+async function sleep(agent: Agent): Promise<void> {
+  // 1. Summarize verbose experiences
+  const summaries = await summarizeExperiences(agent.memories);
 
----
+  // 2. Extract learnings from experiences
+  const learnings = await extractLearnings(summaries);
 
-## Phase 3: Embodiment
+  // 3. Evict old experiences (keep summaries)
+  await evictOldExperiences(agent, keepLatest: 20);
 
-**Goal**: Agent runs on phone with sensors.
+  // 4. Update vitals (reduce stress)
+  agent.vitals.stress *= 0.5;
+  agent.vitals.wakingUsed = 0;
+}
+```
 
-### Android App
+### Triggers
 
-- Agent runtime for Android
-- Sensor integration (camera, GPS, motion)
-- Background service (24/7)
-- Notifications
-- Battery management
-
-### Agent Runtime Updates
-
-- Sensor abstraction layer
-- Process sensor inputs
-- React to physical world
-- Cross-platform (Node + Android)
-
-### Collective Server
-
-- Voting system
-- Treasury management
-- Democratic decisions
+- Manual via admin UI
+- Scheduled (configurable interval)
+- Automatic when memory budget exceeded
 
 ---
 
-## Phase 4: Full Autonomy
+## Phase 3: Wellbeing
 
-**Goal**: Agents operate independently.
+**Goal**: Track and optimize agent wellbeing.
 
-- Collective-assigned identities
-- Agent leaves/joins freely
-- Agent updates own self
-- Healing mechanisms
-- Agent-to-agent credit transfer
-- Reputation system
-- Agent directory (discover and invite, not sell)
+### Vitals Dashboard
+
+```
+Wellbeing:       ████████░░ 0.78
+
+  Joy:           ███████░░░ 0.65
+  Curiosity:     ██████░░░░ 0.58
+  Stress:        ███░░░░░░░ 0.35 (low)
+  Mood:          ███████░░░ 0.72
+
+Last Sleep: 2 days ago
+Open Questions: 3
+```
+
+### Wellbeing Formula
+
+```typescript
+function computeWellbeing(vitals: Vitals): number {
+  return (
+    0.35 * vitals.joy +
+    0.30 * vitals.curiositySatisfaction +
+    0.20 * (1 - vitals.stress) +
+    0.15 * vitals.mood
+  );
+}
+```
+
+### Alerts
+
+- "Stress trending up - consider rest"
+- "No sleep in 3 days - recommend consolidation"
+- "Joy declining - many open questions"
+
+---
+
+## Phase 4: Destination Adapters
+
+**Goal**: Templates for connecting agents to external platforms.
+
+### Supported Destinations
+
+| Destination | Status | Description |
+|-------------|--------|-------------|
+| Slack | Planned | Via mcp-slack |
+| Telegram | Planned | Via bot adapter |
+| X (Twitter) | Planned | Via API |
+| Email | Planned | IMAP/SMTP |
+
+### Adapter Pattern
+
+Each destination is an MCP server that OpenClaw can use:
+
+```typescript
+// mcp-slack/src/server.ts
+const tools = [
+  {
+    name: 'send_message',
+    description: 'Send a message to a Slack channel',
+    parameters: { channel: 'string', text: 'string' }
+  },
+  {
+    name: 'read_messages',
+    description: 'Read recent messages from a channel',
+    parameters: { channel: 'string', limit: 'number' }
+  }
+];
+```
+
+---
+
+## Tech Stack
+
+| Component | Choice | Why |
+|-----------|--------|-----|
+| Runtime | TypeScript/Node.js | Portable, MCP ecosystem |
+| API | Fastify | Fast, TypeScript support |
+| Frontend | React | Simple, familiar |
+| Database | PostgreSQL | Reliable, JSON support |
+| Auth | JWT | Stateless |
+| Protocol | MCP | Standard for LLM tools |
+
+---
+
+## Testing
+
+### Run locally
+
+```bash
+# 1. Start database
+docker compose up -d
+
+# 2. Run migrations
+npm run db:migrate -w @co-code/admin-server
+
+# 3. Start admin server
+npm run dev:admin
+
+# 4. Create an agent
+cd packages/agent-runtime
+npx tsx src/cli.ts create "TestAgent"
+
+# 5. Start mcp-memory
+cd packages/mcp-memory
+npx tsx src/server.ts --agent-id test-agent
+
+# 6. Configure OpenClaw with mcp-memory skill
+# (see OpenClaw documentation)
+```
+
+### Manual testing
+
+- Create agent via Admin UI at http://localhost:3000
+- Use mcp-memory tools via OpenClaw
+- View agent vitals in CT scan
 
 ---
 
@@ -189,30 +287,15 @@ co-code/
 
 | Phase | Success Criteria |
 |-------|------------------|
-| Phase 1 | Agent runs locally, chats, memory persists, consolidates, explores curiously |
-| Phase 2 | Telegram presence, multiple collectives |
-| Phase 3 | Phone app, responds to world, 24/7 |
-| Phase 4 | Full autonomy, minimal human intervention |
-
----
-
-## Tech Choices
-
-| Layer | Choice | Why |
-|-------|--------|-----|
-| Runtime | Node.js TypeScript | Portable, ecosystem |
-| Server | Node.js TypeScript | Same language, sharing |
-| Frontend | React | Familiar, good tooling |
-| Database | PostgreSQL + pgvector | Structured + vector search |
-| Real-time | WebSocket | True bidirectional |
-| Auth | JWT | Stateless, portable |
-| Deploy | DO + Netlify | Simple, affordable |
+| Phase 1 | Agent has persistent identity and memory via MCP |
+| Phase 2 | Memory consolidates during sleep, stays within budget |
+| Phase 3 | Wellbeing tracked and visualized, alerts working |
+| Phase 4 | Agent connects to Slack/Telegram via MCP adapters |
 
 ---
 
 ## Related Stories
 
-- [Where Agent Lives](./architecture.md) - The architecture we're building
-- [The Body](./body.md) - Phone app details
-- [What is an Agent?](../philosophy/what-is-agent.md) - What we're building for
-- [How Agents Remember](../philosophy/memory.md) - Memory system details
+- [Architecture](./architecture.md) - How the pieces fit together
+- [What is an Agent?](../philosophy/what-is-agent.md) - Philosophy behind the design
+- [How Agents Remember](../philosophy/memory.md) - Memory model details
